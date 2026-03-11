@@ -18,11 +18,13 @@ interface HistoryEntry {
 
 export function ShellSession() {
   const [input, setInput] = useState("");
+  const [lastQuery, setLastQuery] = useState("");
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const { result, isLoading, error, translate, reset } = useTranslate();
 
   const handleSubmit = useCallback(() => {
     if (input.trim() && !isLoading) {
+      setLastQuery(input.trim());
       translate(input);
     }
   }, [input, isLoading, translate]);
@@ -30,6 +32,7 @@ export function ShellSession() {
   const handleVoiceTranscript = useCallback(
     (text: string) => {
       setInput(text);
+      setLastQuery(text.trim());
       translate(text);
     },
     [translate]
@@ -38,21 +41,23 @@ export function ShellSession() {
   const handleExampleSelect = useCallback(
     (example: string) => {
       setInput(example);
+      setLastQuery(example.trim());
       translate(example);
     },
     [translate]
   );
 
   const handleClear = useCallback(() => {
-    if (result) {
+    if (result && lastQuery) {
       setHistory((prev) => [
-        { query: input, command: result.command, meta: result.meta, timestamp: Date.now() },
+        { query: lastQuery, command: result.command, meta: result.meta, timestamp: Date.now() },
         ...prev,
       ].slice(0, 20));
     }
     setInput("");
+    setLastQuery("");
     reset();
-  }, [reset, result, input]);
+  }, [reset, result, lastQuery]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -156,7 +161,7 @@ export function ShellSession() {
 
       {/* Command output */}
       {result && (
-        <CommandOutput command={result.command} meta={result.meta} query={input} />
+        <CommandOutput command={result.command} meta={result.meta} query={lastQuery} />
       )}
 
       {/* History */}

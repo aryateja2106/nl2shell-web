@@ -136,7 +136,7 @@
 
 /* Code / terminal font stack */
 .font-code {
-  font-family: 'JetBrains Mono', var(--font-geist-mono), 'Fira Code', 'Consolas', monospace;
+  font-family: var(--font-jetbrains), var(--font-geist-mono), 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
 }
 
 /* Terminal output block */
@@ -145,7 +145,7 @@
   color: var(--terminal-green);
   border: 1px solid var(--terminal-border);
   border-radius: 6px;
-  font-family: 'JetBrains Mono', var(--font-geist-mono), 'Fira Code', monospace;
+  font-family: var(--font-jetbrains), var(--font-geist-mono), 'JetBrains Mono', 'Fira Code', monospace;
 }
 
 /* Subtle glow around terminal blocks */

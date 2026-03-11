@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { useSpeechRecognition } from "@/hooks/use-speech-recognition";
 import { AudioVisualizer } from "@/components/audio-visualizer";
@@ -11,6 +11,11 @@ interface VoiceInputProps {
 }
 
 export function VoiceInput({ onTranscript, disabled }: VoiceInputProps) {
+  const onTranscriptRef = useRef(onTranscript);
+  useEffect(() => {
+    onTranscriptRef.current = onTranscript;
+  }, [onTranscript]);
+
   const {
     isSupported,
     isListening,
@@ -22,9 +27,9 @@ export function VoiceInput({ onTranscript, disabled }: VoiceInputProps) {
 
   useEffect(() => {
     if (transcript) {
-      onTranscript(transcript);
+      onTranscriptRef.current(transcript);
     }
-  }, [transcript, onTranscript]);
+  }, [transcript]);
 
   if (!isSupported) {
     return (
