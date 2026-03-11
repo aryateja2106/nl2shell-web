@@ -26,11 +26,11 @@ export async function POST(request: Request) {
     "unknown";
 
   if (isFeedbackRateLimited(ip)) {
-    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    return NextResponse.json({ error: "Too many requests" }, { status: 429, headers: { "Retry-After": "60" } });
   }
 
   try {
-    const { query, command, rating } = await request.json();
+    const { query, command, rating, correction } = await request.json();
 
     if (
       !query ||
@@ -44,10 +44,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid feedback" }, { status: 400 });
     }
 
+    if (correction && (typeof correction !== "string" || correction.length > 2000)) {
+      return NextResponse.json({ error: "Invalid correction" }, { status: 400 });
+    }
+
     logger.info("feedback", {
       query: query.slice(0, 500),
       command: command.slice(0, 1000),
       rating,
+      ...(correction && { correction: correction.slice(0, 1000) }),
       ip,
     });
 

@@ -61,7 +61,7 @@ export async function POST(request: Request) {
     logger.warn("rate_limited", { ip });
     return NextResponse.json(
       { error: "Too many requests. Please wait a moment." },
-      { status: 429 }
+      { status: 429, headers: { "Retry-After": "60" } }
     );
   }
 
@@ -103,9 +103,16 @@ export async function POST(request: Request) {
       max_new_tokens: maxTokens,
     });
 
-    const data = result.data as [string, string];
+    const data = result.data;
+    if (!Array.isArray(data) || typeof data[0] !== "string") {
+      logger.warn("translate_malformed", { query: trimmedQuery, data: typeof data });
+      return NextResponse.json(
+        { error: "Model returned unexpected response" },
+        { status: 502 }
+      );
+    }
     const command = cleanResponse(data[0] || "");
-    const meta = data[1] || "";
+    const meta = typeof data[1] === "string" ? data[1] : "";
     const durationMs = Math.round(performance.now() - start);
 
     if (!command) {
