@@ -55,7 +55,10 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { query, temperature = 0.1, maxTokens = 128 } = await request.json();
+    const body = await request.json();
+    const query = body.query;
+    const temperature = Math.min(Math.max(Number(body.temperature) || 0.1, 0), 2);
+    const maxTokens = Math.min(Math.max(Number(body.maxTokens) || 128, 1), 512);
 
     if (!query || typeof query !== "string" || !query.trim()) {
       return NextResponse.json(
@@ -119,7 +122,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-      { error: message },
+      { error: "Translation failed. Please try again." },
       { status: 500 }
     );
   }

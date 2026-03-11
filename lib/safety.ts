@@ -7,13 +7,19 @@ const DANGEROUS_PATTERNS: RegExp[] = [
   /\bshred\b/i,
   /\bwipefs\b/i,
   /\b:\(\)\s*\{/,
-  /\bchmod\s+777\b/,
-  />\s*\/dev\/sd[a-z]/,
+  /:\(\)\{.*\|.*&/,
+  /\bchmod\s+(777|\+s)\b/,
+  />\s*\/dev\/(sd[a-z]|nvme)/,
   /\bsystemctl\s+(stop|disable|mask)\b/i,
   /\bkillall\b/i,
   /\breboot\b/i,
   /\bshutdown\b/i,
   /\bpoweroff\b/i,
+  /\bcurl\b.*\|\s*(ba)?sh/i,
+  /\bwget\b.*\|\s*(ba)?sh/i,
+  /\bfdisk\b/i,
+  /\bparted\b/i,
+  /\bmv\s+\/\s/,
 ];
 
 const NON_SHELL_PATTERNS: RegExp[] = [
@@ -45,13 +51,20 @@ export function getDangerReason(command: string): string | null {
     [/\bshred\b/i, "Secure file deletion"],
     [/\bwipefs\b/i, "Filesystem wipe"],
     [/\b:\(\)\s*\{/, "Potential fork bomb"],
+    [/:\(\)\{.*\|.*&/, "Fork bomb"],
     [/\bchmod\s+777\b/, "World-writable permissions"],
-    [/>\s*\/dev\/sd[a-z]/, "Write to raw disk device"],
+    [/\bchmod\s+\+s\b/, "Setuid bit modification"],
+    [/>\s*\/dev\/(sd[a-z]|nvme)/, "Write to raw disk device"],
     [/\bsystemctl\s+(stop|disable|mask)\b/i, "Stopping system service"],
     [/\bkillall\b/i, "Kill all matching processes"],
     [/\breboot\b/i, "System reboot"],
     [/\bshutdown\b/i, "System shutdown"],
     [/\bpoweroff\b/i, "System power off"],
+    [/\bcurl\b.*\|\s*(ba)?sh/i, "Piped remote code execution"],
+    [/\bwget\b.*\|\s*(ba)?sh/i, "Piped remote code execution"],
+    [/\bfdisk\b/i, "Disk partitioning"],
+    [/\bparted\b/i, "Disk partitioning"],
+    [/\bmv\s+\/\s/, "Moving root filesystem"],
   ];
 
   for (const [pattern, reason] of reasons) {

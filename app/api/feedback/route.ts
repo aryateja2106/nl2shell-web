@@ -1,19 +1,54 @@
 import { NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 
+// Simple rate limit: 10 feedback submissions per IP per minute
+const feedbackRateMap = new Map<string, { count: number; resetAt: number }>();
+const FEEDBACK_LIMIT = 10;
+const WINDOW_MS = 60_000;
+
+function isFeedbackRateLimited(ip: string): boolean {
+  const now = Date.now();
+  const entry = feedbackRateMap.get(ip);
+
+  if (!entry || now > entry.resetAt) {
+    feedbackRateMap.set(ip, { count: 1, resetAt: now + WINDOW_MS });
+    return false;
+  }
+
+  entry.count++;
+  return entry.count > FEEDBACK_LIMIT;
+}
+
 export async function POST(request: Request) {
+  const ip =
+    request.headers.get("x-real-ip") ||
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    "unknown";
+
+  if (isFeedbackRateLimited(ip)) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   try {
     const { query, command, rating } = await request.json();
 
-    if (!query || !command || !["up", "down"].includes(rating)) {
+    if (
+      !query ||
+      !command ||
+      !["up", "down"].includes(rating) ||
+      typeof query !== "string" ||
+      typeof command !== "string" ||
+      query.length > 1000 ||
+      command.length > 2000
+    ) {
       return NextResponse.json({ error: "Invalid feedback" }, { status: 400 });
     }
 
     logger.info("feedback", {
-      query,
-      command,
+      query: query.slice(0, 500),
+      command: command.slice(0, 1000),
       rating,
-      userAgent: request.headers.get("user-agent") || "unknown",
+      ip,
     });
 
     return NextResponse.json({ ok: true });
