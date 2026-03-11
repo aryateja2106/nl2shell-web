@@ -41,7 +41,7 @@ export function CommandOutput({ command, meta, query }: CommandOutputProps) {
       <div className="relative group terminal-glow rounded-xl border border-[var(--terminal-border)] overflow-hidden">
         {/* Window chrome */}
         <div className="h-8 bg-[#161b22] flex items-center justify-between px-3 border-b border-[var(--terminal-border)]">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2" aria-hidden="true">
             <div className="size-2.5 rounded-full bg-[#ff5f57]" />
             <div className="size-2.5 rounded-full bg-[#febc2e]" />
             <div className="size-2.5 rounded-full bg-[#28c840]" />
@@ -51,6 +51,7 @@ export function CommandOutput({ command, meta, query }: CommandOutputProps) {
             size="icon-sm"
             className="h-6 w-6 text-muted-foreground/50 hover:text-foreground transition-colors"
             onClick={handleCopy}
+            aria-label={copied ? "Copied to clipboard" : "Copy command to clipboard"}
           >
             {copied ? <CheckIcon className="size-3" /> : <CopyIcon className="size-3" />}
           </Button>

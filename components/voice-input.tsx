@@ -48,6 +48,8 @@ export function VoiceInput({ onTranscript, disabled }: VoiceInputProps) {
         onClick={isListening ? stop : start}
         disabled={disabled}
         className="relative"
+        aria-pressed={isListening}
+        aria-label={isListening ? "Stop listening" : "Start voice input"}
       >
         {isListening ? (
           <>
@@ -65,7 +67,7 @@ export function VoiceInput({ onTranscript, disabled }: VoiceInputProps) {
       {isListening && <AudioVisualizer />}
 
       {interimTranscript && (
-        <span className="text-sm text-muted-foreground italic animate-pulse">
+        <span className="text-sm text-muted-foreground italic animate-pulse" aria-live="polite">
           {interimTranscript}
         </span>
       )}

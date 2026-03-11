@@ -131,10 +131,10 @@ export function ShellSession() {
 
       {/* Error state */}
       {error && (
-        <Card className="border-destructive/30 bg-destructive/5">
+        <Card className="border-destructive/30 bg-destructive/5" role="alert">
           <CardContent>
             <div className="flex items-center gap-2">
-              <span className="text-destructive text-sm">&#9888;</span>
+              <span className="text-destructive text-sm" aria-hidden="true">&#9888;</span>
               <p className="text-sm text-destructive/90">{error}</p>
             </div>
           </CardContent>
@@ -143,10 +143,10 @@ export function ShellSession() {
 
       {/* Loading state */}
       {isLoading && (
-        <Card className="glass-card border-border/40">
+        <Card className="glass-card border-border/40" role="status" aria-live="polite">
           <CardContent>
             <div className="flex items-center gap-3">
-              <div className="flex gap-1">
+              <div className="flex gap-1" aria-hidden="true">
                 <div className="size-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "0ms" }} />
                 <div className="size-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "150ms" }} />
                 <div className="size-1.5 rounded-full bg-primary animate-bounce" style={{ animationDelay: "300ms" }} />

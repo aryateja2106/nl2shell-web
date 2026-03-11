@@ -20,8 +20,19 @@ setInterval(() => {
   }
 }, RATE_WINDOW_MS);
 
+// Cache Gradio client at module level to avoid reconnecting per request
+let cachedClient: Client | null = null;
+
+async function getGradioClient(): Promise<Client> {
+  if (!cachedClient) {
+    cachedClient = await Client.connect("AryaYT/nl2shell-demo", {
+      token: (process.env.HF_TOKEN as `hf_${string}`) || undefined,
+    });
+  }
+  return cachedClient;
+}
+
 function getClientIp(request: Request): string {
-  // Vercel sets x-real-ip from actual connection (cannot be spoofed by client)
   return (
     request.headers.get("x-real-ip") ||
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
@@ -54,8 +65,14 @@ export async function POST(request: Request) {
     );
   }
 
+  let body;
   try {
-    const body = await request.json();
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  try {
     const query = body.query;
     const temperature = Math.min(Math.max(Number(body.temperature) || 0.1, 0), 2);
     const maxTokens = Math.min(Math.max(Number(body.maxTokens) || 128, 1), 512);
@@ -78,9 +95,7 @@ export async function POST(request: Request) {
 
     logger.info("translate_start", { query: trimmedQuery, ip });
 
-    const client = await Client.connect("AryaYT/nl2shell-demo", {
-      token: (process.env.HF_TOKEN as `hf_${string}`) || undefined,
-    });
+    const client = await getGradioClient();
 
     const result = await client.predict("/generate", {
       user_request: trimmedQuery,
@@ -110,13 +125,28 @@ export async function POST(request: Request) {
     return NextResponse.json({ command, meta });
   } catch (error) {
     const durationMs = Math.round(performance.now() - start);
-    const message = error instanceof Error ? error.message : "Translation failed";
+    const message = error instanceof Error ? error.message : "Unknown error";
 
     logger.error("translate_error", { message, durationMs, ip });
+
+    // Reset cached client on connection errors so next request reconnects
+    cachedClient = null;
 
     if (message.includes("timeout") || message.includes("504")) {
       return NextResponse.json(
         { error: "Model is warming up. Please try again in a few seconds." },
+        { status: 503 }
+      );
+    }
+    if (message.includes("sleeping") || message.includes("loading")) {
+      return NextResponse.json(
+        { error: "Model is waking up. Please try again in 30 seconds." },
+        { status: 503 }
+      );
+    }
+    if (message.includes("queue") || message.includes("429")) {
+      return NextResponse.json(
+        { error: "Service is busy. Please try again shortly." },
         { status: 503 }
       );
     }
