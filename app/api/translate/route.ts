@@ -59,7 +59,7 @@ export async function POST(request: Request) {
   const ip = getClientIp(request);
 
   if (isRateLimited(ip)) {
-    logger.warn("rate_limited", { ip });
+    logger.warn("rate_limited", {});
     return NextResponse.json(
       { error: "Too many requests. Please wait a moment." },
       { status: 429, headers: { "Retry-After": "60" } }
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
       );
     }
 
-    logger.info("translate_start", { query: trimmedQuery, ip });
+    logger.info("translate_start", { query: trimmedQuery });
 
     const client = await getGradioClient();
 
@@ -138,7 +138,7 @@ export async function POST(request: Request) {
     const durationMs = Math.round(performance.now() - start);
     const message = error instanceof Error ? error.message : "Unknown error";
 
-    logger.error("translate_error", { message, durationMs, ip });
+    logger.error("translate_error", { message, durationMs });
 
     // Reset cached client on connection errors so next request reconnects
     cachedClient = null;

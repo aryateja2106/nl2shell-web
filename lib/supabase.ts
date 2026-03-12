@@ -70,7 +70,8 @@ export async function saveTranslation(row: TranslationRow): Promise<boolean> {
 
 async function hashIp(ip: string): Promise<string> {
   const encoder = new TextEncoder();
-  const data = encoder.encode(ip + (process.env.IP_SALT || "nl2shell"));
+  const salt = process.env.IP_SALT || crypto.randomUUID();
+  const data = encoder.encode(ip + salt);
   const hash = await crypto.subtle.digest("SHA-256", data);
   return Array.from(new Uint8Array(hash))
     .map((b) => b.toString(16).padStart(2, "0"))

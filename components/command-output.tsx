@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { DangerWarning } from "@/components/danger-warning";
 import { FeedbackButtons } from "@/components/feedback-buttons";
@@ -14,14 +14,22 @@ interface CommandOutputProps {
 
 export function CommandOutput({ command, meta, query }: CommandOutputProps) {
   const [copied, setCopied] = useState(false);
+  const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dangerous = isDangerous(command);
   const dangerReason = getDangerReason(command);
 
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    };
+  }, []);
+
   const handleCopy = async () => {
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
     try {
       await navigator.clipboard.writeText(command);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     } catch {
       const el = document.createElement("textarea");
       el.value = command;
@@ -30,7 +38,7 @@ export function CommandOutput({ command, meta, query }: CommandOutputProps) {
       document.execCommand("copy");
       document.body.removeChild(el);
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      copyTimeoutRef.current = setTimeout(() => setCopied(false), 2000);
     }
   };
 

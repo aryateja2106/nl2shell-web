@@ -23,9 +23,10 @@ export function ShellSession() {
   const { result, isLoading, error, translate, reset } = useTranslate();
 
   const handleSubmit = useCallback(() => {
-    if (input.trim() && !isLoading) {
-      setLastQuery(input.trim());
-      translate(input);
+    const trimmed = input.trim();
+    if (trimmed && !isLoading) {
+      setLastQuery(trimmed);
+      translate(trimmed);
     }
   }, [input, isLoading, translate]);
 

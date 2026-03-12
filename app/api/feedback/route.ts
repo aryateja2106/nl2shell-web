@@ -7,6 +7,14 @@ const feedbackRateMap = new Map<string, { count: number; resetAt: number }>();
 const FEEDBACK_LIMIT = 10;
 const WINDOW_MS = 60_000;
 
+// Periodic cleanup to prevent memory leaks in long-lived processes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of feedbackRateMap) {
+    if (now > entry.resetAt) feedbackRateMap.delete(key);
+  }
+}, WINDOW_MS);
+
 function isFeedbackRateLimited(ip: string): boolean {
   const now = Date.now();
   const entry = feedbackRateMap.get(ip);
@@ -54,7 +62,6 @@ export async function POST(request: Request) {
       command: command.slice(0, 1000),
       rating,
       ...(correction && { correction: correction.slice(0, 1000) }),
-      ip,
     });
 
     // Persist to Supabase if configured (best-effort, non-blocking)
