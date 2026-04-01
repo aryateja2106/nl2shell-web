@@ -4,20 +4,29 @@ import { useEffect, useState } from "react";
 
 const EXAMPLES = [
   {
-    prompt: "find all python files modified today",
-    command: 'find . -name "*.py" -mtime -1',
+    prompt: "install node 22",
+    command: "brew install node@22",
+    os: "macOS",
+  },
+  {
+    prompt: "install node 22",
+    command: "curl -fsSL https://deb.nodesource.com/setup_22.x | sudo bash - && sudo apt-get install -y nodejs",
+    os: "Ubuntu",
   },
   {
     prompt: "kill whatever is using port 3000",
     command: "lsof -ti:3000 | xargs kill -9",
+    os: "macOS",
   },
   {
-    prompt: "compress src into a tarball",
-    command: "tar -czf src.tar.gz src/",
+    prompt: "find all files over 100MB",
+    command: "find / -type f -size +100M -exec ls -lh {} \\;",
+    os: "Linux",
   },
   {
     prompt: "show which process uses the most memory",
     command: "ps aux --sort=-%mem | head -5",
+    os: "any",
   },
 ];
 
@@ -70,6 +79,11 @@ export function HeroTerminal() {
         <span className="ml-3 text-[11px] text-muted-foreground/50 font-mono">
           nl2shell
         </span>
+        {showCommand && example.os !== "any" && (
+          <span className="ml-auto text-[10px] text-muted-foreground/40 font-mono">
+            {example.os}
+          </span>
+        )}
       </div>
 
       {/* Terminal body */}

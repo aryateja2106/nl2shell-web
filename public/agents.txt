@@ -1,33 +1,41 @@
-# agents.txt — AI Agent Discovery for LeShell
-# https://leshell.lesearch.ai
+# agents.txt — AI Agent Discovery for LeShell (nl2shell.com)
 
 User-agent: *
 MCP-Endpoint: /api/mcp
 LLMs-txt: /llms.txt
-API-Docs: /llms.txt
 
-# Available tools via MCP
-Tool: nl2shell_translate
-Description: Convert natural language descriptions to shell/bash commands
-Method: POST
-Endpoint: /api/translate
-Input: {"query": "your natural language description"}
-Output: {"command": "bash command", "meta": "model info"}
+# MCP server info
+MCP-Protocol: JSON-RPC 2.0
+MCP-Transport: Streamable HTTP
+MCP-Server-Name: leshell
+MCP-Server-Version: 1.0.0
 
-Tool: sandbox_execute
-Description: Execute a bash command in an isolated Docker sandbox with no network access
-Method: POST
-Endpoint: /api/execute
-Input: {"sessionId": "uuid", "command": "bash command"}
-Output: {"stdout": "", "stderr": "", "exitCode": 0, "durationMs": 0, "auditId": ""}
+# Tools available via MCP (POST /api/mcp)
+Tool: leshell_translate
+Description: Translate a natural language description into a shell/bash command
+Input: {"query": "your natural language description", "os_context": "(optional) OS context string"}
+Output: {"command": "bash command"}
 
-Tool: sandbox_session_create
-Description: Create a new isolated sandbox session with persistent filesystem
-Method: POST
-Endpoint: /api/session
-Output: {"id": "uuid", "status": "running", "createdAt": 0}
+Tool: leshell_execute
+Description: Execute a shell command in an isolated Docker sandbox with no network access
+Input: {"sessionId": "uuid", "command": "bash command", "timeout_ms": 30000}
+Output: {"stdout": "", "stderr": "", "exitCode": 0}
+
+Tool: leshell_explain
+Description: Explain what a shell command does in plain English
+Input: {"command": "bash command to explain"}
+Output: {"explanation": "plain English description"}
+
+# Direct REST endpoints (no MCP required)
+Endpoint: POST /api/translate
+Endpoint: POST /api/execute
+Endpoint: POST /api/session
+Endpoint: GET /api/session
 
 # Security
 Sandbox-Isolation: network=none, capabilities=none, memory=512m, pids=100
 Audit-Trail: JSONL per session
 Session-TTL: 24h
+Rate-Limit-MCP: 20 req/min per IP
+Rate-Limit-Translate: 30 req/min per IP
+Rate-Limit-Execute: 10 req/min per IP

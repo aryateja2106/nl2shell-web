@@ -2,14 +2,28 @@
 
 import { useState } from "react";
 
+type Tab = "install" | "uninstall";
+
+const COMMANDS: Record<Tab, { cmd: string; note: string }> = {
+  install: {
+    cmd: "curl -fsSL https://nl2shell.com/install.sh | bash",
+    note: "Installs Ollama (if needed) and pulls the 400MB model. macOS and Linux.",
+  },
+  uninstall: {
+    cmd: "curl -fsSL https://nl2shell.com/uninstall.sh | bash",
+    note: "Removes the model. Ollama itself is not removed.",
+  },
+};
+
 export function Footer() {
+  const [tab, setTab] = useState<Tab>("install");
   const [copied, setCopied] = useState(false);
 
-  const installCmd = "ollama run hf.co/AryaYT/nl2shell-0.8b";
+  const current = COMMANDS[tab];
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(installCmd);
+      await navigator.clipboard.writeText(current.cmd);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -20,7 +34,7 @@ export function Footer() {
   return (
     <footer className="border-t border-border/40 mt-20 pt-16 pb-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10 max-w-4xl mx-auto px-4">
-        {/* Left: Install CTA */}
+        {/* Left: Install CTA with tabs */}
         <div>
           <h3 className="text-lg font-semibold text-foreground">
             Want this in your terminal?
@@ -28,14 +42,40 @@ export function Footer() {
           <p className="text-sm text-muted-foreground/70 mt-1">
             One command. Works offline forever.
           </p>
-          <div className="terminal-output px-4 py-3 mt-4 flex items-center justify-between gap-3">
+
+          {/* Tabs */}
+          <div className="flex mt-4 border-b border-border/30">
+            <button
+              onClick={() => { setTab("install"); setCopied(false); }}
+              className={`px-4 py-2 text-xs font-medium transition-colors ${
+                tab === "install"
+                  ? "text-foreground border-b-2 border-[#2ea44f]"
+                  : "text-muted-foreground/50 hover:text-muted-foreground"
+              }`}
+            >
+              Install
+            </button>
+            <button
+              onClick={() => { setTab("uninstall"); setCopied(false); }}
+              className={`px-4 py-2 text-xs font-medium transition-colors ${
+                tab === "uninstall"
+                  ? "text-foreground border-b-2 border-[#2ea44f]"
+                  : "text-muted-foreground/50 hover:text-muted-foreground"
+              }`}
+            >
+              Uninstall
+            </button>
+          </div>
+
+          {/* Command block */}
+          <div className="terminal-output px-4 py-3 mt-0 rounded-t-none flex items-center justify-between gap-3">
             <code className="text-[var(--terminal-green)] text-sm font-mono truncate">
-              {installCmd}
+              {current.cmd}
             </code>
             <button
               onClick={handleCopy}
               className="shrink-0 text-muted-foreground/50 hover:text-foreground transition-colors"
-              aria-label="Copy install command"
+              aria-label={`Copy ${tab} command`}
             >
               {copied ? (
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="size-4"><path d="M20 6 9 17l-5-5" /></svg>
@@ -45,7 +85,7 @@ export function Footer() {
             </button>
           </div>
           <p className="text-[11px] text-muted-foreground/40 mt-2">
-            No account. No API key. No cloud dependency.
+            {current.note}
           </p>
         </div>
 
@@ -72,16 +112,21 @@ export function Footer() {
             </ul>
           </div>
           <div>
-            <h4 className="font-medium text-foreground/80 mb-3 text-xs uppercase tracking-wider">Source</h4>
+            <h4 className="font-medium text-foreground/80 mb-3 text-xs uppercase tracking-wider">Project</h4>
             <ul className="space-y-2">
               <li>
-                <a href="https://github.com/aryateja2106/vox" target="_blank" rel="noopener noreferrer" className="text-muted-foreground/60 hover:text-primary transition-colors">
-                  Vox CLI
+                <a href="https://github.com/aryateja2106/nl2shell-web" target="_blank" rel="noopener noreferrer" className="text-muted-foreground/60 hover:text-primary transition-colors">
+                  GitHub
                 </a>
               </li>
               <li>
-                <a href="https://github.com/aryateja2106/cloudagi" target="_blank" rel="noopener noreferrer" className="text-muted-foreground/60 hover:text-primary transition-colors">
-                  CloudAGI
+                <a href="https://github.com/aryateja2106/nl2shell-web/issues" target="_blank" rel="noopener noreferrer" className="text-muted-foreground/60 hover:text-primary transition-colors">
+                  Report an Issue
+                </a>
+              </li>
+              <li>
+                <a href="https://github.com/aryateja2106/nl2shell-web/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" className="text-muted-foreground/60 hover:text-primary transition-colors">
+                  Contribute
                 </a>
               </li>
             </ul>
@@ -92,7 +137,7 @@ export function Footer() {
       {/* Bottom bar */}
       <div className="border-t border-border/30 mt-10 pt-6 text-center">
         <p className="text-[11px] text-muted-foreground/30">
-          400MB model. Runs on your machine. Does one thing well.
+          NL2Shell &middot; 400MB model &middot; Runs on your machine &middot; Does one thing well &middot; MIT Licensed
         </p>
       </div>
     </footer>

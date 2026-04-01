@@ -1,0 +1,6 @@
+blank_issues_enabled: true
+
+contact_links:
+  - name: GitHub Discussions
+    url: https://github.com/aryateja2106/nl2shell-web/discussions
+    about: For questions, ideas, or general conversation about NL2Shell

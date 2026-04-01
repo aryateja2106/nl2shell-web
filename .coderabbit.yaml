@@ -1,0 +1,96 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+
+language: "en-US"
+tone_instructions: "Be direct and technical. Focus on security, performance, and Next.js best practices."
+early_access: false
+
+reviews:
+  profile: "assertive"
+  request_changes_workflow: true
+  high_level_summary: true
+  high_level_summary_placeholder: "@coderabbitai summary"
+  high_level_summary_instructions: >-
+    Summarize in 3-5 bullets. Note any changes to API routes, security headers,
+    or client-side behavior. Flag hydration risks.
+  auto_title_placeholder: "@coderabbitai"
+  auto_title_instructions: "Conventional commit format: type(scope): description"
+
+  review_status: true
+  commit_status: true
+  sequence_diagrams: true
+  poem: false
+
+  suggested_labels: true
+  labeling_instructions:
+    - label: "security"
+      instructions: "Apply when PR touches API routes, rate limiting, CSP, or user input handling."
+    - label: "ux"
+      instructions: "Apply when PR changes UI components, voice input, or user-facing behavior."
+
+  path_filters:
+    - "!node_modules/**"
+    - "!.next/**"
+    - "!bun.lock"
+    - "!**/*.min.js"
+    - "!coverage/**"
+
+  path_instructions:
+    - path: "app/api/**"
+      instructions: >-
+        Security focus: validate all inputs. Rate limiting must be in place.
+        Gradio client calls must have timeout handling. Check for response
+        validation — never trust raw model output. Verify CSP and security headers.
+    - path: "components/**"
+      instructions: >-
+        Check for hydration mismatches — browser-only APIs (Web Speech, window, navigator)
+        must be accessed in useEffect or with client-side guards. Verify accessibility
+        (aria labels, keyboard navigation). No inline styles — use Tailwind.
+    - path: "hooks/**"
+      instructions: >-
+        Hooks must handle SSR — no window/navigator access during initial render.
+        Check cleanup in useEffect return values. Verify error states are handled.
+    - path: "lib/safety.ts"
+      instructions: >-
+        This is the dangerous command detection module. Any changes must maintain
+        coverage of all OWASP-relevant shell patterns. Regex must be tested against
+        both positive and negative cases.
+    - path: "lib/clean-response.ts"
+      instructions: >-
+        This strips model output artifacts. Changes must not break the cleaning
+        pipeline — test with markdown fences, backticks, preambles, and comment lines.
+
+  auto_review:
+    enabled: true
+    auto_incremental_review: true
+    ignore_title_keywords:
+      - "WIP"
+      - "DRAFT"
+    drafts: false
+
+  finishing_touches:
+    docstrings:
+      enabled: true
+    unit_tests:
+      enabled: true
+
+  tools:
+    eslint:
+      enabled: true
+    gitleaks:
+      enabled: true
+    hadolint:
+      enabled: true
+    markdownlint:
+      enabled: true
+    ast-grep:
+      essential_rules: true
+
+chat:
+  auto_reply: true
+
+knowledge_base:
+  opt_out: false
+  web_search:
+    enabled: true
+  learnings:
+    scope: "local"

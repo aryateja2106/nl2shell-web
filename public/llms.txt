@@ -1,55 +1,74 @@
-# LeShell
+# LeShell (nl2shell.com)
 
 > Translate natural language to shell commands and execute them in isolated Docker sandbox containers. Powered by a fine-tuned 800M parameter model.
 
-Built by LeSearch AI (https://lesearch.ai)
+Built by Arya Teja / LeSearch AI — https://nl2shell.com
 
 ## API Endpoints
 
-### Translate (Natural Language to Bash)
-- Method: POST /api/translate
-- Body: {"query": "find all python files modified today"}
-- Response: {"command": "find . -name '*.py' -mtime 0", "meta": "model: nl2shell-0.8b | latency: 0.3s"}
-- Rate Limit: 30 requests/min per IP
+### POST /api/translate
+Translate natural language to a shell command.
 
-### Execute (Run in Sandbox)
-- Method: POST /api/execute
-- Body: {"sessionId": "uuid", "command": "echo hello", "timeout_ms": 30000}
-- Response: {"stdout": "hello\n", "stderr": "", "exitCode": 0, "durationMs": 5, "auditId": "..."}
-- Rate Limit: 10 requests/min per IP
-- Requires: Active sandbox session
+- Body: `{"query": "find all python files modified today"}`
+- Response: `{"command": "find . -name '*.py' -mtime 0", "meta": "model: nl2shell-0.8b | latency: 0.3s"}`
+- Rate limit: 30 requests/min per IP
 
-### Session Management
-- Create: POST /api/session → {"id": "uuid", "status": "running", "createdAt": 1234567890}
-- List: GET /api/session → [...]
-- Get: GET /api/session/{id}
-- Delete: DELETE /api/session/{id}
+### POST /api/execute
+Execute a command in an isolated Docker sandbox.
 
-### MCP (Model Context Protocol)
-- Endpoint: POST /api/mcp
-- Protocol: MCP Streamable HTTP (JSON-RPC 2.0)
-- Tools: nl2shell_translate, sandbox_execute, sandbox_session_create, sandbox_read_file, sandbox_write_file
+- Body: `{"sessionId": "uuid", "command": "echo hello", "timeout_ms": 30000}`
+- Response: `{"stdout": "hello\n", "stderr": "", "exitCode": 0, "durationMs": 5, "auditId": "..."}`
+- Rate limit: 10 requests/min per IP
+- Requires: active sandbox session (create via POST /api/session)
 
-## Security
+### POST /api/session
+Create a new isolated sandbox session.
 
-- Sandbox containers run with: --network none, --cap-drop ALL, --memory 512m
-- 13 dangerous command patterns are blocked (rm -rf, fork bombs, docker escape, etc.)
-- All tool calls are logged to a JSONL audit trail
-- Sessions auto-expire after 24 hours of inactivity
+- Body: (empty)
+- Response: `{"id": "uuid", "status": "running", "createdAt": 1234567890}`
 
-## Integration
+### GET /api/session
+List active sandbox sessions.
 
-Add to your MCP config:
+- Response: `[{"id": "uuid", "status": "running", "createdAt": 1234567890}, ...]`
+
+### GET /api/session/{id}
+Get a specific session by ID.
+
+### DELETE /api/session/{id}
+Terminate a sandbox session.
+
+### POST /api/mcp
+MCP Streamable HTTP endpoint (JSON-RPC 2.0).
+
+- Protocol: JSON-RPC 2.0, `Content-Type: application/json`
+- Rate limit: 20 requests/min per IP
+- Tools exposed:
+  - `leshell_translate` — natural language to shell command
+  - `leshell_execute` — run command in sandbox (requires sessionId)
+  - `leshell_explain` — explain what a command does
+
+#### MCP Integration (Claude Desktop / Cursor / Windsurf)
 ```json
 {
   "mcpServers": {
     "leshell": {
-      "url": "https://your-domain.com/api/mcp"
+      "url": "https://nl2shell.com/api/mcp"
     }
   }
 }
 ```
 
+## Security
+
+- Sandbox containers: `--network none`, `--cap-drop ALL`, `--memory 512m`, `--pids-limit 100`
+- 13 dangerous command patterns blocked (rm -rf /, fork bombs, docker socket escapes)
+- All executions logged to a JSONL audit trail per session
+- Sessions auto-expire after 24 hours of inactivity
+
 ## Source
+
+- Website: https://nl2shell.com
 - GitHub: https://github.com/aryateja2106/nl2shell-web
 - Model: https://huggingface.co/AryaYT/nl2shell-0.8b
+- Training data: https://huggingface.co/datasets/AryaYT/nl2shell-training-v3

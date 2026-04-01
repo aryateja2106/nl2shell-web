@@ -1,39 +1,52 @@
 "use client";
 
-import { useCallback, useState, useRef, useEffect } from "react";
+import { useCallback, useState, useRef, useSyncExternalStore } from "react";
 import type { ExecutionResult } from "@/types/sandbox";
 
 interface SandboxState {
   output: ExecutionResult | null;
   isExecuting: boolean;
   error: string | null;
-  activeSessionId: string | null;
 }
 
 const SESSION_KEY = "leshell-session-id";
 
+// Hydration-safe localStorage access using useSyncExternalStore
+function subscribeSessionStorage(callback: () => void) {
+  window.addEventListener("storage", callback);
+  return () => window.removeEventListener("storage", callback);
+}
+function getSessionSnapshot() {
+  return localStorage.getItem(SESSION_KEY);
+}
+function getSessionServerSnapshot() {
+  return null;
+}
+
 export function useSandbox() {
+  const activeSessionId = useSyncExternalStore(
+    subscribeSessionStorage,
+    getSessionSnapshot,
+    getSessionServerSnapshot
+  );
+
   const [state, setState] = useState<SandboxState>({
     output: null,
     isExecuting: false,
     error: null,
-    activeSessionId: null,
   });
 
-  // Hydrate session from localStorage after mount
-  useEffect(() => {
-    const stored = localStorage.getItem(SESSION_KEY);
-    if (stored) {
-      setState((prev) => ({ ...prev, activeSessionId: stored }));
-    }
-  }, []);
   const abortRef = useRef<AbortController | null>(null);
 
   const ensureSession = useCallback(async (): Promise<string> => {
     // Return existing session if available
-    if (state.activeSessionId) return state.activeSessionId;
+    const stored = typeof window !== "undefined" ? localStorage.getItem(SESSION_KEY) : null;
+    if (stored) return stored;
 
-    const res = await fetch("/api/session", { method: "POST" });
+    const res = await fetch("/api/session", { method: "POST" }).catch(() => null);
+    if (!res) {
+      throw new Error("Sandbox is currently offline. Translation still works — try running the command locally instead.");
+    }
     if (!res.ok) {
       const body = await res.json().catch(() => ({ error: "Session creation failed" }));
       throw new Error(body.error || "Failed to create sandbox session");
@@ -42,9 +55,10 @@ export function useSandbox() {
     const id = data.id as string;
 
     localStorage.setItem(SESSION_KEY, id);
-    setState((prev) => ({ ...prev, activeSessionId: id }));
+    // Notify useSyncExternalStore subscribers
+    window.dispatchEvent(new StorageEvent("storage", { key: SESSION_KEY }));
     return id;
-  }, [state.activeSessionId]);
+  }, []);
 
   const execute = useCallback(
     async (command: string) => {
@@ -91,14 +105,15 @@ export function useSandbox() {
         }));
       } catch (err) {
         if ((err as Error).name === "AbortError") return;
+        const message = err instanceof Error ? err.message : String(err);
+        const isNetworkError = message.includes("fetch") || message.includes("network") || message.includes("Failed");
         setState((prev) => ({
           ...prev,
           output: null,
           isExecuting: false,
-          error:
-            err instanceof Error
-              ? err.message
-              : "Sandbox unavailable. Is the relay server running?",
+          error: isNetworkError
+            ? "Sandbox is currently offline. Translation still works — try running the command locally instead."
+            : message,
         }));
       }
     },
@@ -107,11 +122,11 @@ export function useSandbox() {
 
   const clearSession = useCallback(() => {
     localStorage.removeItem(SESSION_KEY);
+    window.dispatchEvent(new StorageEvent("storage", { key: SESSION_KEY }));
     setState({
       output: null,
       isExecuting: false,
       error: null,
-      activeSessionId: null,
     });
   }, []);
 
@@ -121,6 +136,7 @@ export function useSandbox() {
 
   return {
     ...state,
+    activeSessionId,
     execute,
     clearSession,
     clearOutput,
