@@ -6,8 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { VoiceInput } from "@/components/voice-input";
 import { CommandOutput } from "@/components/command-output";
+import { ExecutionOutput } from "@/components/execution-output";
 import { ExamplePrompts } from "@/components/example-prompts";
 import { useTranslate } from "@/hooks/use-translate";
+import { useSandbox } from "@/hooks/use-sandbox";
+
+const SANDBOX_ENABLED = process.env.NEXT_PUBLIC_SANDBOX_ENABLED === "true";
 
 interface HistoryEntry {
   query: string;
@@ -21,6 +25,7 @@ export function ShellSession() {
   const [lastQuery, setLastQuery] = useState("");
   const [history, setHistory] = useState<HistoryEntry[]>([]);
   const { result, isLoading, error, translate, reset } = useTranslate();
+  const sandbox = useSandbox();
 
   const handleSubmit = useCallback(() => {
     const trimmed = input.trim();
@@ -162,7 +167,31 @@ export function ShellSession() {
 
       {/* Command output */}
       {result && (
-        <CommandOutput command={result.command} meta={result.meta} query={lastQuery} />
+        <CommandOutput
+          command={result.command}
+          meta={result.meta}
+          query={lastQuery}
+          onExecute={sandbox.execute}
+          isExecuting={sandbox.isExecuting}
+          sandboxEnabled={SANDBOX_ENABLED}
+        />
+      )}
+
+      {/* Sandbox execution output */}
+      {sandbox.output && result && (
+        <ExecutionOutput result={sandbox.output} command={result.command} />
+      )}
+
+      {/* Sandbox error */}
+      {sandbox.error && (
+        <Card className="border-yellow-500/30 bg-yellow-500/5" role="alert">
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <span className="text-yellow-500 text-sm" aria-hidden="true">&#9888;</span>
+              <p className="text-sm text-yellow-500/90">{sandbox.error}</p>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* History */}

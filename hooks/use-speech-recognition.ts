@@ -4,7 +4,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createSpeechRecognition, isSpeechSupported } from "@/lib/speech";
 
 export function useSpeechRecognition() {
-  const [isSupported] = useState(() => isSpeechSupported());
+  const [isSupported, setIsSupported] = useState(false);
+
+  useEffect(() => {
+    setIsSupported(isSpeechSupported());
+  }, []);
   const [isListening, setIsListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [interimTranscript, setInterimTranscript] = useState("");

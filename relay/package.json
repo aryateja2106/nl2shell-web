@@ -1,0 +1,24 @@
+{
+  "name": "@leshell/relay",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch server.ts",
+    "start": "node --import tsx server.ts",
+    "build": "tsc",
+    "docker:build-sandbox": "docker build -t leshell-sandbox -f sandbox.Dockerfile ."
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.19.12",
+    "better-sqlite3": "^11.0.0",
+    "hono": "^4.7.0",
+    "uuid": "^11.0.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.0",
+    "@types/node": "^22",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0"
+  }
+}

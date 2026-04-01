@@ -10,9 +10,12 @@ interface CommandOutputProps {
   command: string;
   meta?: string;
   query?: string;
+  onExecute?: (command: string) => void;
+  isExecuting?: boolean;
+  sandboxEnabled?: boolean;
 }
 
-export function CommandOutput({ command, meta, query }: CommandOutputProps) {
+export function CommandOutput({ command, meta, query, onExecute, isExecuting, sandboxEnabled }: CommandOutputProps) {
   const [copied, setCopied] = useState(false);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dangerous = isDangerous(command);
@@ -54,15 +57,36 @@ export function CommandOutput({ command, meta, query }: CommandOutputProps) {
             <div className="size-2.5 rounded-full bg-[#febc2e]" />
             <div className="size-2.5 rounded-full bg-[#28c840]" />
           </div>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            className="h-6 w-6 text-muted-foreground/50 hover:text-foreground transition-colors"
-            onClick={handleCopy}
-            aria-label={copied ? "Copied to clipboard" : "Copy command to clipboard"}
-          >
-            {copied ? <CheckIcon className="size-3" /> : <CopyIcon className="size-3" />}
-          </Button>
+          <div className="flex items-center gap-1">
+            {sandboxEnabled && onExecute && (
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                className="h-6 px-2 text-[10px] font-mono text-[#2ea44f]/70 hover:text-[#2ea44f] hover:bg-[#2ea44f]/10 transition-colors"
+                onClick={() => onExecute(command)}
+                disabled={isExecuting}
+                aria-label="Run command in sandbox"
+              >
+                {isExecuting ? (
+                  <span className="animate-pulse">...</span>
+                ) : (
+                  <>
+                    <PlayIcon className="size-3 mr-1" />
+                    Run
+                  </>
+                )}
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="h-6 w-6 text-muted-foreground/50 hover:text-foreground transition-colors"
+              onClick={handleCopy}
+              aria-label={copied ? "Copied to clipboard" : "Copy command to clipboard"}
+            >
+              {copied ? <CheckIcon className="size-3" /> : <CopyIcon className="size-3" />}
+            </Button>
+          </div>
         </div>
 
         <pre className="terminal-output p-4 text-sm leading-relaxed overflow-x-auto whitespace-pre-wrap break-all rounded-none border-0">
@@ -82,6 +106,14 @@ export function CommandOutput({ command, meta, query }: CommandOutputProps) {
         <FeedbackButtons query={query || ""} command={command} />
       </div>
     </div>
+  );
+}
+
+function PlayIcon({ className }: { className?: string }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
+      <path d="M8 5v14l11-7z" />
+    </svg>
   );
 }
 

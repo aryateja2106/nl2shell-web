@@ -1,0 +1,17 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "LeShell",
+  "name_for_model": "leshell",
+  "description_for_human": "Translate natural language to shell commands and execute them in a secure sandbox.",
+  "description_for_model": "LeShell translates natural language to bash/shell commands using a fine-tuned 800M model and can execute them in isolated Docker containers with no network access. Use POST /api/translate with {\"query\": \"description\"} to get a command, then POST /api/execute with {\"sessionId\": \"id\", \"command\": \"cmd\"} to run it safely. Create sessions with POST /api/session first. MCP endpoint at POST /api/mcp.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "/llms.txt"
+  },
+  "logo_url": "/icon.svg",
+  "contact_email": "lesearch.ai@gmail.com",
+  "legal_info_url": "https://lesearch.ai"
+}

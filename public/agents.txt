@@ -1,0 +1,33 @@
+# agents.txt — AI Agent Discovery for LeShell
+# https://leshell.lesearch.ai
+
+User-agent: *
+MCP-Endpoint: /api/mcp
+LLMs-txt: /llms.txt
+API-Docs: /llms.txt
+
+# Available tools via MCP
+Tool: nl2shell_translate
+Description: Convert natural language descriptions to shell/bash commands
+Method: POST
+Endpoint: /api/translate
+Input: {"query": "your natural language description"}
+Output: {"command": "bash command", "meta": "model info"}
+
+Tool: sandbox_execute
+Description: Execute a bash command in an isolated Docker sandbox with no network access
+Method: POST
+Endpoint: /api/execute
+Input: {"sessionId": "uuid", "command": "bash command"}
+Output: {"stdout": "", "stderr": "", "exitCode": 0, "durationMs": 0, "auditId": ""}
+
+Tool: sandbox_session_create
+Description: Create a new isolated sandbox session with persistent filesystem
+Method: POST
+Endpoint: /api/session
+Output: {"id": "uuid", "status": "running", "createdAt": 0}
+
+# Security
+Sandbox-Isolation: network=none, capabilities=none, memory=512m, pids=100
+Audit-Trail: JSONL per session
+Session-TTL: 24h
