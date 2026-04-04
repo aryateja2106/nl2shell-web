@@ -77,7 +77,7 @@ export function Navbar() {
       {/* Right-side actions */}
       <div className="ml-auto flex items-center gap-1 sm:ml-0">
         <a
-          href="https://github.com/aryateja2106/nl2shell-web"
+          href="https://github.com/nl2shell/nl2shell-web"
           target="_blank"
           rel="noopener noreferrer"
           aria-label="View source on GitHub"

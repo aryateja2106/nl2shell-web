@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { ThumbsUp, ThumbsDown, X, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -15,6 +15,13 @@ type State = "idle" | "submitted" | "dismissed";
 
 export function FeedbackBar({ query, command, className }: FeedbackBarProps) {
   const [state, setState] = useState<State>("idle");
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current !== null) clearTimeout(timeoutRef.current);
+    };
+  }, []);
 
   if (state === "dismissed") return null;
 
@@ -29,7 +36,7 @@ export function FeedbackBar({ query, command, className }: FeedbackBarProps) {
       // Non-critical — don't block UX on network failure
     }
     setState("submitted");
-    setTimeout(() => setState("dismissed"), 2000);
+    timeoutRef.current = setTimeout(() => setState("dismissed"), 2000);
   };
 
   const handleDismiss = () => setState("dismissed");

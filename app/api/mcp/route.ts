@@ -9,15 +9,12 @@ const rateMap = new Map<string, { count: number; resetAt: number }>();
 const RATE_LIMIT = 20;
 const RATE_WINDOW_MS = 60_000;
 
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, entry] of rateMap) {
-    if (now > entry.resetAt) rateMap.delete(key);
-  }
-}, RATE_WINDOW_MS);
-
 function getClientIp(request: Request): string {
-  return request.headers.get("x-real-ip") || "unknown";
+  const xRealIp = request.headers.get("x-real-ip");
+  if (xRealIp) return xRealIp;
+  const xForwardedFor = request.headers.get("x-forwarded-for");
+  if (xForwardedFor) return xForwardedFor.split(",")[0].trim();
+  return "unknown";
 }
 
 function isRateLimited(ip: string): boolean {
@@ -118,22 +115,33 @@ async function handleTranslate(
   }
 
   const base = new URL(requestUrl).origin;
-  const res = await fetch(`${base}/api/translate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query: query.trim() }),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30_000);
+  let res: Response;
+  try {
+    res = await fetch(`${base}/api/translate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: query.trim() }),
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
-  const data = (await res.json()) as { command?: string; error?: string };
+  const raw = await res.json();
+  const data = raw !== null && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const command = typeof data["command"] === "string" ? data["command"] : undefined;
+  const error = typeof data["error"] === "string" ? data["error"] : undefined;
   if (!res.ok) {
-    throw new Error(data.error || "Translation failed");
+    throw new Error(error || "Translation failed");
   }
 
   return {
     content: [
       {
         type: "text",
-        text: JSON.stringify({ command: data.command }),
+        text: JSON.stringify({ command }),
       },
     ],
   };
@@ -153,35 +161,39 @@ async function handleExecute(args: {
     throw new Error("command is required");
   }
 
-  const res = await fetch(`${RELAY_URL}/exec`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      sessionId,
-      command,
-      timeout_ms: typeof timeout_ms === "number" ? Math.min(timeout_ms, 60000) : 30000,
-    }),
-  });
+  const execController = new AbortController();
+  const execTimeoutId = setTimeout(() => execController.abort(), 30_000);
+  let res: Response;
+  try {
+    res = await fetch(`${RELAY_URL}/exec`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId,
+        command,
+        timeout_ms: typeof timeout_ms === "number" ? Math.min(timeout_ms, 60000) : 30000,
+      }),
+      signal: execController.signal,
+    });
+  } finally {
+    clearTimeout(execTimeoutId);
+  }
 
-  const data = (await res.json()) as {
-    stdout?: string;
-    stderr?: string;
-    exitCode?: number;
-    error?: string;
-  };
+  const rawExec = await res.json();
+  const data = rawExec !== null && typeof rawExec === "object" ? (rawExec as Record<string, unknown>) : {};
+  const stdout = typeof data["stdout"] === "string" ? data["stdout"] : "";
+  const stderr = typeof data["stderr"] === "string" ? data["stderr"] : "";
+  const exitCode = typeof data["exitCode"] === "number" ? data["exitCode"] : -1;
+  const execError = typeof data["error"] === "string" ? data["error"] : undefined;
   if (!res.ok) {
-    throw new Error(data.error || "Execution failed");
+    throw new Error(execError || "Execution failed");
   }
 
   return {
     content: [
       {
         type: "text",
-        text: JSON.stringify({
-          stdout: data.stdout ?? "",
-          stderr: data.stderr ?? "",
-          exitCode: data.exitCode ?? -1,
-        }),
+        text: JSON.stringify({ stdout, stderr, exitCode }),
       },
     ],
   };
@@ -200,18 +212,28 @@ async function handleExplain(
   const query = `explain what this command does: ${command.trim()}`;
   const base = new URL(requestUrl).origin;
 
-  const res = await fetch(`${base}/api/translate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query }),
-  });
+  const explainController = new AbortController();
+  const explainTimeoutId = setTimeout(() => explainController.abort(), 30_000);
+  let res: Response;
+  try {
+    res = await fetch(`${base}/api/translate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query }),
+      signal: explainController.signal,
+    });
+  } finally {
+    clearTimeout(explainTimeoutId);
+  }
 
-  const data = (await res.json()) as { command?: string; error?: string };
+  const rawExplain = await res.json();
+  const data = rawExplain !== null && typeof rawExplain === "object" ? (rawExplain as Record<string, unknown>) : {};
+  const explainCommand = typeof data["command"] === "string" ? data["command"] : undefined;
 
   // The model returns a command here; we surface it as-is since the fine-tuned
   // model interprets "explain ..." queries as explanation text.
-  const explanation = res.ok && data.command
-    ? data.command
+  const explanation = res.ok && explainCommand
+    ? explainCommand
     : `Runs: ${command.trim()}`;
 
   return {
@@ -229,7 +251,11 @@ export async function POST(request: Request) {
 
   if (isRateLimited(ip)) {
     return NextResponse.json(
-      { error: "Too many requests. Please wait a moment." },
+      {
+        jsonrpc: "2.0",
+        id: null,
+        error: { code: -32000, message: "Too many requests. Please wait a moment." },
+      },
       { status: 429, headers: { "Retry-After": "60" } }
     );
   }

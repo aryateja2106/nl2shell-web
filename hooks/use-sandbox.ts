@@ -106,7 +106,7 @@ export function useSandbox() {
       } catch (err) {
         if ((err as Error).name === "AbortError") return;
         const message = err instanceof Error ? err.message : String(err);
-        const isNetworkError = message.includes("fetch") || message.includes("network") || message.includes("Failed");
+        const isNetworkError = err instanceof TypeError;
         setState((prev) => ({
           ...prev,
           output: null,

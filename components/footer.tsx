@@ -115,17 +115,17 @@ export function Footer() {
             <h4 className="font-medium text-foreground/80 mb-3 text-xs uppercase tracking-wider">Project</h4>
             <ul className="space-y-2">
               <li>
-                <a href="https://github.com/aryateja2106/nl2shell-web" target="_blank" rel="noopener noreferrer" className="text-muted-foreground/60 hover:text-primary transition-colors">
+                <a href="https://github.com/nl2shell/nl2shell-web" target="_blank" rel="noopener noreferrer" className="text-muted-foreground/60 hover:text-primary transition-colors">
                   GitHub
                 </a>
               </li>
               <li>
-                <a href="https://github.com/aryateja2106/nl2shell-web/issues" target="_blank" rel="noopener noreferrer" className="text-muted-foreground/60 hover:text-primary transition-colors">
+                <a href="https://github.com/nl2shell/nl2shell-web/issues" target="_blank" rel="noopener noreferrer" className="text-muted-foreground/60 hover:text-primary transition-colors">
                   Report an Issue
                 </a>
               </li>
               <li>
-                <a href="https://github.com/aryateja2106/nl2shell-web/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" className="text-muted-foreground/60 hover:text-primary transition-colors">
+                <a href="https://github.com/nl2shell/nl2shell-web/blob/main/CONTRIBUTING.md" target="_blank" rel="noopener noreferrer" className="text-muted-foreground/60 hover:text-primary transition-colors">
                   Contribute
                 </a>
               </li>

@@ -50,7 +50,7 @@ export function AnimatedThemeToggler() {
             pseudoElement: "::view-transition-new(root)",
           }
         );
-      });
+      }).catch(() => {});
     } else {
       setTheme(next);
     }
