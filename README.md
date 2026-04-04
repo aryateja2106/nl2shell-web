@@ -39,7 +39,7 @@ Browser → Next.js on Vercel → Gradio Space API → NL2Shell Model (HuggingFa
 ## Quick Start
 
 ```bash
-git clone https://github.com/aryateja2106/nl2shell-web.git
+git clone https://github.com/nl2shell/nl2shell-web.git
 cd nl2shell-web
 bun install
 bun dev

@@ -7,13 +7,19 @@ echo ""
 # Check for Ollama
 if ! command -v ollama &>/dev/null; then
   echo "==> Ollama not found. Installing..."
-  curl -fsSL https://ollama.com/install.sh | sh
+  INSTALL_SCRIPT=$(mktemp)
+  curl -fsSL https://ollama.com/install.sh -o "$INSTALL_SCRIPT"
+  sh "$INSTALL_SCRIPT"
+  rm -f "$INSTALL_SCRIPT"
   echo ""
 fi
 
 # Pull the NL2Shell model (~400MB)
 echo "==> Pulling NL2Shell model (400MB, one-time download)..."
-ollama pull hf.co/AryaYT/nl2shell-0.8b
+if ! ollama pull hf.co/AryaYT/nl2shell-0.8b; then
+  echo "Error: Failed to pull model." >&2
+  exit 1
+fi
 
 echo ""
 echo "NL2Shell installed!"

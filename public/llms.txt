@@ -1,4 +1,4 @@
-# LeShell (nl2shell.com)
+# NL2Shell (nl2shell.com)
 
 > Translate natural language to shell commands and execute them in isolated Docker sandbox containers. Powered by a fine-tuned 800M parameter model.
 
@@ -69,6 +69,6 @@ MCP Streamable HTTP endpoint (JSON-RPC 2.0).
 ## Source
 
 - Website: https://nl2shell.com
-- GitHub: https://github.com/aryateja2106/nl2shell-web
+- GitHub: https://github.com/nl2shell/nl2shell-web
 - Model: https://huggingface.co/AryaYT/nl2shell-0.8b
 - Training data: https://huggingface.co/datasets/AryaYT/nl2shell-training-v3

@@ -10,7 +10,7 @@ const EXAMPLES = [
   },
   {
     prompt: "install node 22",
-    command: "curl -fsSL https://deb.nodesource.com/setup_22.x | sudo bash - && sudo apt-get install -y nodejs",
+    command: "curl -fsSL https://deb.nodesource.com/setup_22.x -o setup.sh && sudo bash setup.sh && sudo apt-get install -y nodejs",
     os: "Ubuntu",
   },
   {
@@ -26,7 +26,7 @@ const EXAMPLES = [
   {
     prompt: "show which process uses the most memory",
     command: "ps aux --sort=-%mem | head -5",
-    os: "any",
+    os: "Linux",
   },
 ];
 

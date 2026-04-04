@@ -1,6 +1,6 @@
 ---
 name: Feature Request
-about: Suggest a feature for LeShell
+about: Suggest a feature for NL2Shell
 title: '[feat] '
 labels: enhancement
 assignees: ''
@@ -8,7 +8,7 @@ assignees: ''
 
 ## Describe the feature
 
-What should LeShell do that it doesn't do today?
+What should NL2Shell do that it doesn't do today?
 
 ## Use case
 
