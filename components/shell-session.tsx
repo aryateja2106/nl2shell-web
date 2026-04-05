@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import dynamic from "next/dynamic";
 import { Loader2, Terminal } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,8 +11,15 @@ import { CommandOutput } from "@/components/command-output";
 import { ExecutionOutput } from "@/components/execution-output";
 import { ExamplePrompts } from "@/components/example-prompts";
 import { AILoader } from "@/components/ai-loader";
-import { useTranslate } from "@/hooks/use-translate";
+import { ModelLoader } from "@/components/model-loader";
+import { useInference } from "@/hooks/use-inference";
 import { useSandbox } from "@/hooks/use-sandbox";
+
+// Dynamic import with ssr: false to avoid hydration mismatch from WebGPU detection
+const InferenceModeSelector = dynamic(
+  () => import("@/components/inference-mode-selector").then((m) => m.InferenceModeSelector),
+  { ssr: false },
+);
 
 const SANDBOX_ENABLED = process.env.NEXT_PUBLIC_SANDBOX_ENABLED === "true";
 
@@ -26,7 +34,20 @@ export function ShellSession() {
   const [input, setInput] = useState("");
   const [lastQuery, setLastQuery] = useState("");
   const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const { result, isLoading, error, translate, reset } = useTranslate();
+  const {
+    result,
+    isLoading,
+    error,
+    translate,
+    reset,
+    mode,
+    setMode,
+    isWebGPUAvailable,
+    modelStatus,
+    loadProgress,
+    loadProgressText,
+    inferenceSource,
+  } = useInference();
   const sandbox = useSandbox();
 
   const handleSubmit = useCallback(() => {
@@ -132,7 +153,15 @@ export function ShellSession() {
               )}
             </div>
 
-            <VoiceInput onTranscript={handleVoiceTranscript} disabled={isLoading} />
+            <div className="flex items-center gap-2">
+              <InferenceModeSelector
+                mode={mode}
+                onModeChange={setMode}
+                isWebGPUAvailable={isWebGPUAvailable}
+                modelStatus={modelStatus}
+              />
+              <VoiceInput onTranscript={handleVoiceTranscript} disabled={isLoading} />
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -149,6 +178,11 @@ export function ShellSession() {
         </Card>
       )}
 
+      {/* Model loading progress */}
+      {modelStatus === "loading" && (
+        <ModelLoader progress={loadProgress} progressText={loadProgressText} />
+      )}
+
       {/* Loading state */}
       {isLoading && <AILoader />}
 
@@ -161,6 +195,7 @@ export function ShellSession() {
           onExecute={sandbox.execute}
           isExecuting={sandbox.isExecuting}
           sandboxEnabled={SANDBOX_ENABLED}
+          inferenceSource={inferenceSource}
         />
       )}
 

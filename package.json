@@ -11,6 +11,7 @@
   "dependencies": {
     "@base-ui/react": "^1.2.0",
     "@gradio/client": "^2.1.0",
+    "@huggingface/transformers": "^4.0.1",
     "@supabase/supabase-js": "^2.99.1",
     "@vercel/analytics": "^2.0.0",
     "@vercel/speed-insights": "^2.0.0",

@@ -14,9 +14,10 @@ interface CommandOutputProps {
   onExecute?: (command: string) => void;
   isExecuting?: boolean;
   sandboxEnabled?: boolean;
+  inferenceSource?: "cloud" | "browser";
 }
 
-export function CommandOutput({ command, meta, query, onExecute, isExecuting, sandboxEnabled }: CommandOutputProps) {
+export function CommandOutput({ command, meta, query, onExecute, isExecuting, sandboxEnabled, inferenceSource }: CommandOutputProps) {
   const [copied, setCopied] = useState(false);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dangerous = isDangerous(command);
@@ -100,6 +101,9 @@ export function CommandOutput({ command, meta, query, onExecute, isExecuting, sa
         {meta ? (
           <p className="text-[11px] text-muted-foreground/50 font-mono">
             {meta.replace(/\*\*/g, "").replace(/\|/g, " · ")}
+            {inferenceSource === "browser" && (
+              <span className="ml-2 text-[#28c840]/70"> · your data stayed local</span>
+            )}
           </p>
         ) : (
           <div />
