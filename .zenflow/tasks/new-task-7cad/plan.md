@@ -18,50 +18,72 @@ Do not make assumptions on important decisions — get clarification first.
 
 ## Workflow Steps
 
-### [ ] Step: Technical Specification
+### [x] Step: Technical Specification
+<!-- chat-id: 1b6043e3-cc74-4de4-bcfa-6d46671c8fcc -->
 
-Assess the task's difficulty, as underestimating it leads to poor outcomes.
-- easy: Straightforward implementation, trivial bug fix or feature
-- medium: Moderate complexity, some edge cases or caveats to consider
-- hard: Complex logic, many caveats, architectural considerations, or high-risk changes
-
-Create a technical specification for the task that is appropriate for the complexity level:
-- Review the existing codebase architecture and identify reusable components.
-- Define the implementation approach based on established patterns in the project.
-- Identify all source code files that will be created or modified.
-- Define any necessary data model, API, or interface changes.
-- Describe verification steps using the project's test and lint commands.
-
-Save the output to `{@artifacts_path}/spec.md` with:
-- Technical context (language, dependencies)
-- Implementation approach
-- Source code structure changes
-- Data model / API / interface changes
-- Verification approach
-
-If the task is complex enough, create a detailed implementation plan based on `{@artifacts_path}/spec.md`:
-- Break down the work into concrete tasks (incrementable, testable milestones)
-- Each task should reference relevant contracts and include verification steps
-- Replace the Implementation step below with the planned tasks
-
-Rule of thumb for step size: each step should represent a coherent unit of work (e.g., implement a component, add an API endpoint, write tests for a module). Avoid steps that are too granular (single function).
-
-Important: unit tests must be part of each implementation task, not separate tasks. Each task should implement the code and its tests together, if relevant.
-
-Save to `{@artifacts_path}/plan.md`. If the feature is trivial and doesn't warrant this breakdown, keep the Implementation step below as is.
+Assessed as **hard** — multiple interacting subsystems, new dependencies, cross-cutting header concerns.
+Full spec saved to `.zenflow/tasks/new-task-7cad/spec.md`.
 
 ---
 
-### [ ] Step: Implementation
+### [ ] Step: Fix cleanResponse and create browser inference engine
 
-Implement the task according to the technical specification and general engineering best practices.
+Create `lib/browser-engine.ts` (Transformers.js pipeline for in-browser WebGPU inference) and update `lib/clean-response.ts` to strip `<think>` blocks from model output.
 
-1. Break the task into steps where possible.
-2. Implement the required changes in the codebase
-3. If relevant, write unit tests alongside each change.
-4. Run relevant tests and linters in the end of each step.
-5. Perform basic manual verification if applicable.
-6. After completion, write a report to `{@artifacts_path}/report.md` describing:
-   - What was implemented
-   - How the solution was tested
-   - The biggest issues or challenges encountered
+- Install `@huggingface/transformers`
+- Create `lib/browser-engine.ts` with singleton pipeline, lazy loading, progress callbacks, and status events
+- Update `lib/clean-response.ts` to strip `<think>...</think>` blocks before other cleaning
+- Verify: `npx tsc --noEmit && npm run lint && npm run build`
+
+---
+
+### [ ] Step: Build WebContainer sandbox
+
+Create the in-browser sandbox using WebContainers to replace the Docker relay for demo use.
+
+- Install `@webcontainer/api`
+- Create `lib/webcontainer-sandbox.ts` (boot, exec, teardown singleton)
+- Create `hooks/use-webcontainer.ts` (React hook: boot-on-first-run, exec, history tracking)
+- Update `types/sandbox.d.ts` to make `auditId` optional
+- Verify: `npx tsc --noEmit && npm run lint && npm run build`
+
+---
+
+### [ ] Step: Wire up UI — mode selector, browser translate, sandbox execution
+
+Integrate browser inference and WebContainer sandbox into the main UI.
+
+- Add inference mode selector (Cloud / Browser / Auto) to `components/shell-session.tsx`
+- Update `hooks/use-translate.ts` to accept mode parameter and call browser engine directly in browser mode
+- Replace `useSandbox()` with `useWebContainer()` in shell-session for WebContainer execution
+- Update `components/execution-output.tsx` for optional auditId and command history display
+- Verify: `npx tsc --noEmit && npm run lint && npm run build`
+
+---
+
+### [ ] Step: Configure COOP/COEP headers and CSP updates
+
+Add required headers for WebContainers (SharedArrayBuffer) without breaking Vercel Analytics.
+
+- Update `next.config.ts` with COOP/COEP headers (try `credentialless` first)
+- Update CSP `connect-src` for WebContainer and Transformers.js origins
+- Test that Vercel Analytics still loads; fall back to route-specific headers if broken
+- Verify: `npx tsc --noEmit && npm run lint && npm run build`
+
+---
+
+### [ ] Step: Deploy to Vercel and configure nl2shell.com domain
+
+Push to main, verify auto-deploy, configure domain and env vars.
+
+- Merge feature branch to main
+- Set Vercel env vars: `HF_TOKEN`, `NEXT_PUBLIC_SANDBOX_ENABLED`
+- Configure nl2shell.com CNAME → cname.vercel-dns.com in Cloudflare (DNS-only)
+- Verify: `curl -I https://nl2shell.com` returns 200 with correct headers
+- Manual smoke test: Cloud mode, Browser mode, Sandbox execution
+
+---
+
+### [ ] Step: Write implementation report
+
+- Write `{@artifacts_path}/report.md` describing what was implemented, how it was tested, and challenges encountered
