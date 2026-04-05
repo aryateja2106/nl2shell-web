@@ -65,14 +65,15 @@ Integrate browser inference and WebContainer sandbox into the main UI.
 
 ---
 
-### [ ] Step: Configure COOP/COEP headers and CSP updates
+### [x] Step: Configure COOP/COEP headers and CSP updates
+<!-- chat-id: d33e4a06-2d42-4dbb-b5c8-3bc822e2fc52 -->
 
 Add required headers for WebContainers (SharedArrayBuffer) without breaking Vercel Analytics.
 
-- Update `next.config.ts` with COOP/COEP headers (try `credentialless` first)
-- Update CSP `connect-src` for WebContainer and Transformers.js origins
-- Test that Vercel Analytics still loads; fall back to route-specific headers if broken
-- Verify: `npx tsc --noEmit && npm run lint && npm run build`
+- [x] Update `next.config.ts` with COOP/COEP headers (try `credentialless` first)
+- [x] Update CSP `connect-src` for WebContainer and Transformers.js origins
+- [x] Test that Vercel Analytics still loads; fall back to route-specific headers if broken
+- [x] Verify: `npx tsc --noEmit && npm run lint && npm run build`
 
 ---
 

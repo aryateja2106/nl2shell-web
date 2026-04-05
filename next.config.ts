@@ -1,5 +1,17 @@
 import type { NextConfig } from "next";
 
+const csp = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "font-src 'self' data:",
+  "connect-src 'self' https://*.huggingface.co https://*.webcontainer-api.io https://*.stackblitz.io https://va.vercel-scripts.com https://vitals.vercel-insights.com",
+  "worker-src 'self' blob:",
+  "child-src 'self' blob:",
+  "frame-ancestors 'none'",
+].join("; ");
+
 const nextConfig: NextConfig = {
   async headers() {
     return [
@@ -15,8 +27,16 @@ const nextConfig: NextConfig = {
             value: "camera=(), geolocation=(), microphone=(self)",
           },
           {
+            key: "Cross-Origin-Embedder-Policy",
+            value: "credentialless",
+          },
+          {
+            key: "Cross-Origin-Opener-Policy",
+            value: "same-origin",
+          },
+          {
             key: "Content-Security-Policy",
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://*.huggingface.co; frame-ancestors 'none';",
+            value: csp,
           },
         ],
       },
