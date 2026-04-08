@@ -1,8 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import dynamic from "next/dynamic";
-import { Loader2, Terminal } from "lucide-react";
+import { Cloud, Loader2, Monitor, Terminal, Zap } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,17 +10,16 @@ import { CommandOutput } from "@/components/command-output";
 import { ExecutionOutput } from "@/components/execution-output";
 import { ExamplePrompts } from "@/components/example-prompts";
 import { AILoader } from "@/components/ai-loader";
-import { ModelLoader } from "@/components/model-loader";
-import { useInference } from "@/hooks/use-inference";
-import { useSandbox } from "@/hooks/use-sandbox";
+import { useTranslate, type InferenceMode } from "@/hooks/use-translate";
+import { useWebContainer } from "@/hooks/use-webcontainer";
 
-// Dynamic import with ssr: false to avoid hydration mismatch from WebGPU detection
-const InferenceModeSelector = dynamic(
-  () => import("@/components/inference-mode-selector").then((m) => m.InferenceModeSelector),
-  { ssr: false },
-);
+const SANDBOX_ENABLED = process.env.NEXT_PUBLIC_SANDBOX_ENABLED !== "false";
 
-const SANDBOX_ENABLED = process.env.NEXT_PUBLIC_SANDBOX_ENABLED === "true";
+const MODES: { value: InferenceMode; label: string; icon: typeof Cloud }[] = [
+  { value: "cloud", label: "Cloud", icon: Cloud },
+  { value: "browser", label: "Browser", icon: Monitor },
+  { value: "auto", label: "Auto", icon: Zap },
+];
 
 interface HistoryEntry {
   query: string;
@@ -34,21 +32,10 @@ export function ShellSession() {
   const [input, setInput] = useState("");
   const [lastQuery, setLastQuery] = useState("");
   const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const {
-    result,
-    isLoading,
-    error,
-    translate,
-    reset,
-    mode,
-    setMode,
-    isWebGPUAvailable,
-    modelStatus,
-    loadProgress,
-    loadProgressText,
-    inferenceSource,
-  } = useInference();
-  const sandbox = useSandbox();
+  const [mode, setMode] = useState<InferenceMode>("cloud");
+  const { result, isLoading, error, browserStatus, translate, reset } =
+    useTranslate(mode);
+  const sandbox = useWebContainer();
 
   const handleSubmit = useCallback(() => {
     const trimmed = input.trim();
@@ -64,7 +51,7 @@ export function ShellSession() {
       setLastQuery(text.trim());
       translate(text);
     },
-    [translate]
+    [translate],
   );
 
   const handleExampleSelect = useCallback(
@@ -73,15 +60,22 @@ export function ShellSession() {
       setLastQuery(example.trim());
       translate(example);
     },
-    [translate]
+    [translate],
   );
 
   const handleClear = useCallback(() => {
     if (result && lastQuery) {
-      setHistory((prev) => [
-        { query: lastQuery, command: result.command, meta: result.meta, timestamp: Date.now() },
-        ...prev,
-      ].slice(0, 20));
+      setHistory((prev) =>
+        [
+          {
+            query: lastQuery,
+            command: result.command,
+            meta: result.meta,
+            timestamp: Date.now(),
+          },
+          ...prev,
+        ].slice(0, 20),
+      );
     }
     setInput("");
     setLastQuery("");
@@ -95,18 +89,46 @@ export function ShellSession() {
     }
   };
 
+  const showBrowserProgress =
+    isLoading &&
+    mode !== "cloud" &&
+    (browserStatus.stage === "downloading" ||
+      browserStatus.stage === "loading");
+
   return (
     <div className="space-y-6">
       {/* Input card */}
       <Card className="glass-card border-border/40">
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <label
-              htmlFor="nl-input"
-              className="text-sm font-medium text-foreground/80"
-            >
-              Describe what you want to do
-            </label>
+            <div className="flex items-center justify-between">
+              <label
+                htmlFor="nl-input"
+                className="text-sm font-medium text-foreground/80"
+              >
+                Describe what you want to do
+              </label>
+
+              {/* Mode selector */}
+              <div className="flex items-center gap-0.5 p-0.5 rounded-lg bg-background/50 border border-border/30">
+                {MODES.map(({ value, label, icon: Icon }) => (
+                  <button
+                    key={value}
+                    onClick={() => setMode(value)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-mono rounded-md transition-colors ${
+                      mode === value
+                        ? "bg-[#2ea44f]/15 text-[#2ea44f]"
+                        : "text-muted-foreground/50 hover:text-muted-foreground/80"
+                    }`}
+                    aria-pressed={mode === value}
+                  >
+                    <Icon className="size-3" />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <Textarea
               id="nl-input"
               value={input}
@@ -117,6 +139,32 @@ export function ShellSession() {
               className="resize-none bg-background/50 border-border/40 focus:border-primary/50 transition-colors"
               disabled={isLoading}
             />
+
+            {/* Browser engine status */}
+            {showBrowserProgress && (
+              <div className="flex items-center gap-2 text-[11px] font-mono text-muted-foreground/60">
+                <Loader2 className="size-3 animate-spin" />
+                {browserStatus.stage === "downloading" ? (
+                  <div className="flex items-center gap-2 flex-1">
+                    <span>Downloading model...</span>
+                    {typeof browserStatus.progress === "number" && (
+                      <>
+                        <div className="flex-1 max-w-[200px] h-1 bg-border/30 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-[#2ea44f] rounded-full transition-all duration-300"
+                            style={{ width: `${browserStatus.progress}%` }}
+                          />
+                        </div>
+                        <span>{browserStatus.progress}%</span>
+                      </>
+                    )}
+                  </div>
+                ) : (
+                  <span>Initializing model...</span>
+                )}
+              </div>
+            )}
+
             <p className="text-[11px] text-muted-foreground/40">
               Press Enter to submit, Shift+Enter for newline
             </p>
@@ -153,15 +201,10 @@ export function ShellSession() {
               )}
             </div>
 
-            <div className="flex items-center gap-2">
-              <InferenceModeSelector
-                mode={mode}
-                onModeChange={setMode}
-                isWebGPUAvailable={isWebGPUAvailable}
-                modelStatus={modelStatus}
-              />
-              <VoiceInput onTranscript={handleVoiceTranscript} disabled={isLoading} />
-            </div>
+            <VoiceInput
+              onTranscript={handleVoiceTranscript}
+              disabled={isLoading}
+            />
           </div>
         </CardContent>
       </Card>
@@ -171,20 +214,17 @@ export function ShellSession() {
         <Card className="border-destructive/30 bg-destructive/5" role="alert">
           <CardContent>
             <div className="flex items-center gap-2">
-              <span className="text-destructive text-sm" aria-hidden="true">&#9888;</span>
+              <span className="text-destructive text-sm" aria-hidden="true">
+                &#9888;
+              </span>
               <p className="text-sm text-destructive/90">{error}</p>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Model loading progress */}
-      {modelStatus === "loading" && (
-        <ModelLoader progress={loadProgress} progressText={loadProgressText} />
-      )}
-
       {/* Loading state */}
-      {isLoading && <AILoader />}
+      {isLoading && !showBrowserProgress && <AILoader />}
 
       {/* Command output */}
       {result && (
@@ -195,13 +235,26 @@ export function ShellSession() {
           onExecute={sandbox.execute}
           isExecuting={sandbox.isExecuting}
           sandboxEnabled={SANDBOX_ENABLED}
-          inferenceSource={inferenceSource}
         />
+      )}
+
+      {/* Sandbox execution status */}
+      {sandbox.isExecuting && !sandbox.output && (
+        <div className="flex items-center gap-2 px-4 py-2 text-[11px] font-mono text-muted-foreground/60">
+          <Loader2 className="size-3 animate-spin" />
+          <span>
+            {sandbox.isBooting ? "Booting sandbox..." : "Executing..."}
+          </span>
+        </div>
       )}
 
       {/* Sandbox execution output */}
       {sandbox.output && result && (
-        <ExecutionOutput result={sandbox.output} command={result.command} />
+        <ExecutionOutput
+          result={sandbox.output}
+          command={result.command}
+          history={sandbox.history.slice(0, -1)}
+        />
       )}
 
       {/* Sandbox error */}
@@ -209,12 +262,18 @@ export function ShellSession() {
         <Card className="border-yellow-500/30 bg-yellow-500/5" role="alert">
           <CardContent>
             <div className="flex items-start gap-2">
-              <span className="text-yellow-500 text-sm mt-0.5" aria-hidden="true">&#9888;</span>
+              <span
+                className="text-yellow-500 text-sm mt-0.5"
+                aria-hidden="true"
+              >
+                &#9888;
+              </span>
               <div>
                 <p className="text-sm text-yellow-500/90">{sandbox.error}</p>
                 {result && (
                   <p className="text-xs text-muted-foreground/50 mt-1">
-                    You can copy the command above and run it in your own terminal.
+                    You can copy the command above and run it in your own
+                    terminal.
                   </p>
                 )}
               </div>
@@ -223,7 +282,7 @@ export function ShellSession() {
         </Card>
       )}
 
-      {/* History */}
+      {/* Translation history */}
       {history.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center gap-3">
@@ -255,4 +314,3 @@ export function ShellSession() {
     </div>
   );
 }
-

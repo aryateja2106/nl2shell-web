@@ -1,107 +1,115 @@
 "use client";
 
-import type { ProgressInfo, TextGenerationPipeline } from "@huggingface/transformers";
+import { pipeline, TextGenerationPipeline } from "@huggingface/transformers";
 import { cleanResponse } from "@/lib/clean-response";
 
-// Use dynamic import to avoid SSR issues
+const MODEL_ID = "onnx-community/Qwen2.5-0.5B-Instruct";
+
+const SYSTEM_PROMPT = `You are NL2Shell, a tool that converts natural language to shell commands.
+Rules:
+- Output ONLY the shell command, nothing else
+- No explanations, no markdown, no code fences
+- If the request is ambiguous, pick the most common interpretation
+- Use standard Unix/Linux commands`;
+
+export interface BrowserEngineStatus {
+  stage: "idle" | "downloading" | "loading" | "ready" | "generating" | "error";
+  progress?: number;
+  error?: string;
+}
+
+type StatusCallback = (status: BrowserEngineStatus) => void;
+
 let pipelineInstance: TextGenerationPipeline | null = null;
-let loadingPromise: Promise<TextGenerationPipeline> | null = null;
+let loadPromise: Promise<TextGenerationPipeline> | null = null;
+let currentStatus: BrowserEngineStatus = { stage: "idle" };
+const listeners = new Set<StatusCallback>();
 
-const MODEL_ID = "onnx-community/Qwen3.5-0.8B-ONNX";
+function setStatus(status: BrowserEngineStatus) {
+  currentStatus = status;
+  for (const cb of listeners) cb(status);
+}
 
-const SYSTEM_PROMPT = `/no_think
-You are nl2shell, a specialist that converts natural language to shell commands. Output ONLY the exact shell command. No explanations, no markdown, no backticks, no reasoning, no thinking. Just the command.`;
+export function getStatus(): BrowserEngineStatus {
+  return currentStatus;
+}
 
-export type ProgressCallback = (progress: {
-  progress: number;
-  text: string;
-}) => void;
-
-export function isEngineReady(): boolean {
+export function isReady(): boolean {
   return pipelineInstance !== null;
 }
 
-export async function initEngine(onProgress?: ProgressCallback): Promise<void> {
-  if (pipelineInstance) return;
-  if (loadingPromise) {
-    await loadingPromise;
-    return;
-  }
+export function onStatusChange(cb: StatusCallback): () => void {
+  listeners.add(cb);
+  return () => listeners.delete(cb);
+}
 
-  loadingPromise = (async () => {
-    const { pipeline, env } = await import("@huggingface/transformers");
+async function loadPipeline(): Promise<TextGenerationPipeline> {
+  if (pipelineInstance) return pipelineInstance;
+  if (loadPromise) return loadPromise;
 
-    // Disable local model check (always fetch from HF Hub)
-    env.allowLocalModels = false;
+  loadPromise = (async () => {
+    setStatus({ stage: "downloading", progress: 0 });
 
-    const generator = await pipeline("text-generation", MODEL_ID, {
-      dtype: "q4",
+    const pipe = await pipeline("text-generation", MODEL_ID, {
+      dtype: "q4f16",
       device: "webgpu",
-      progress_callback: onProgress
-        ? (data: ProgressInfo) => {
-            if (data.status === "progress") {
-              onProgress({
-                progress: data.progress ?? 0,
-                text: data.file ? `Loading ${data.file}...` : "Initializing...",
-              });
-            }
-          }
-        : undefined,
+      progress_callback: (progress: { progress?: number; status?: string }) => {
+        if (progress.status === "progress" && typeof progress.progress === "number") {
+          setStatus({ stage: "downloading", progress: Math.round(progress.progress) });
+        }
+      },
     });
 
-    return generator;
+    setStatus({ stage: "loading" });
+    pipelineInstance = pipe as TextGenerationPipeline;
+    setStatus({ stage: "ready" });
+    return pipelineInstance;
   })();
 
   try {
-    pipelineInstance = await loadingPromise;
+    return await loadPromise;
   } catch (err) {
-    loadingPromise = null;
+    loadPromise = null;
+    const message = err instanceof Error ? err.message : "Failed to load model";
+    setStatus({ stage: "error", error: message });
     throw err;
   }
 }
 
-export async function generate(query: string): Promise<{
-  command: string;
-  meta: string;
-  durationMs: number;
-}> {
-  if (!pipelineInstance) {
-    throw new Error("Engine not initialized. Call initEngine() first.");
-  }
-
-  const start = performance.now();
+export async function generate(query: string): Promise<string> {
+  const pipe = await loadPipeline();
+  setStatus({ stage: "generating" });
 
   const messages = [
-    { role: "system" as const, content: SYSTEM_PROMPT },
-    { role: "user" as const, content: query },
+    { role: "system", content: SYSTEM_PROMPT },
+    { role: "user", content: query },
   ];
 
-  const result = await pipelineInstance(messages, {
+  const result = await pipe(messages, {
     max_new_tokens: 128,
     temperature: 0.1,
     do_sample: true,
     return_full_text: false,
   });
 
-  const durationMs = Math.round(performance.now() - start);
+  setStatus({ stage: "ready" });
 
-  const output = Array.isArray(result) ? result[0] : result;
-  const generatedText = (output as { generated_text?: unknown })?.generated_text;
-  const raw =
-    Array.isArray(generatedText)
-      ? ((generatedText.at(-1) as { content?: string })?.content ?? "")
-      : (typeof generatedText === "string" ? generatedText : "");
+  // Transformers.js text-generation with chat messages returns:
+  // [{ generated_text: [{ role, content }, ...] }]  (chat mode)
+  // OR [{ generated_text: "string" }]                (plain mode)
+  const output = result[0]?.generated_text;
 
-  const command = cleanResponse(raw);
-  const meta = `Browser (WebGPU) | Qwen3.5-0.8B | ${durationMs}ms`;
-
-  return { command, meta, durationMs };
-}
-
-export async function unloadEngine(): Promise<void> {
-  if (pipelineInstance) {
-    await pipelineInstance.dispose();
-    pipelineInstance = null;
-    loadingPromise = null;
+  let raw: string;
+  if (Array.isArray(output)) {
+    // Chat mode: find the assistant's reply (last message)
+    const lastMsg = output.at(-1);
+    raw =
+      typeof lastMsg === "object" && lastMsg !== null && "content" in lastMsg
+        ? String(lastMsg.content)
+        : "";
+  } else {
+    raw = typeof output === "string" ? output : "";
   }
+
+  return cleanResponse(raw);
 }

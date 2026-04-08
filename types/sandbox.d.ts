@@ -10,7 +10,7 @@ export interface ExecutionResult {
   stderr: string;
   exitCode: number;
   durationMs: number;
-  auditId: string;
+  auditId?: string;
 }
 
 export interface ExecRequest {

@@ -2,12 +2,24 @@
 
 import type { ExecutionResult } from "@/types/sandbox";
 
+interface HistoryEntry {
+  command: string;
+  stdout: string;
+  exitCode: number;
+  timestamp: number;
+}
+
 interface ExecutionOutputProps {
   result: ExecutionResult;
   command: string;
+  history?: HistoryEntry[];
 }
 
-export function ExecutionOutput({ result, command }: ExecutionOutputProps) {
+export function ExecutionOutput({
+  result,
+  command,
+  history,
+}: ExecutionOutputProps) {
   const hasStdout = result.stdout.trim().length > 0;
   const hasStderr = result.stderr.trim().length > 0;
   const isSuccess = result.exitCode === 0;
@@ -39,8 +51,26 @@ export function ExecutionOutput({ result, command }: ExecutionOutputProps) {
         </div>
 
         {/* Output */}
-        <div className="bg-[#0d1117] p-4 text-sm font-mono leading-relaxed overflow-x-auto">
-          {/* Command echo */}
+        <div className="bg-[#0d1117] p-4 text-sm font-mono leading-relaxed overflow-x-auto max-h-[400px] overflow-y-auto">
+          {/* Previous commands (history) */}
+          {history && history.length > 0 && (
+            <div className="opacity-50 mb-3 pb-3 border-b border-[var(--terminal-border)]/30">
+              {history.map((entry) => (
+                <div key={entry.timestamp} className="mb-2 last:mb-0">
+                  <div className="text-muted-foreground/40">
+                    <span className="text-[#2ea44f]/50">$</span> {entry.command}
+                  </div>
+                  {entry.stdout.trim() && (
+                    <pre className="text-[#e6edf3]/50 whitespace-pre-wrap break-all">
+                      {entry.stdout}
+                    </pre>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Current command echo */}
           <div className="text-muted-foreground/40 mb-2">
             <span className="text-[#2ea44f]">$</span> {command}
           </div>
@@ -69,9 +99,11 @@ export function ExecutionOutput({ result, command }: ExecutionOutputProps) {
       </div>
 
       {/* Audit trail reference */}
-      <p className="text-[10px] text-muted-foreground/30 font-mono mt-1.5 text-right">
-        audit: {result.auditId}
-      </p>
+      {result.auditId && (
+        <p className="text-[10px] text-muted-foreground/30 font-mono mt-1.5 text-right">
+          audit: {result.auditId}
+        </p>
+      )}
     </div>
   );
 }

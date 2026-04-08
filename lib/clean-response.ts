@@ -1,10 +1,12 @@
 export function cleanResponse(text: string): string {
   let cleaned = text.trim();
 
-  // Remove <think>...</think> reasoning blocks (Qwen3 thinking mode)
-  cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>\s*/g, "");
+  // Strip <think>...</think> blocks (Qwen reasoning tags)
+  // Handles: empty blocks, blocks with content, multiline content
+  cleaned = cleaned.replace(/^<think>[\s\S]*?<\/think>\s*/, "");
   // Remove unclosed <think> blocks (model truncated mid-thought)
   cleaned = cleaned.replace(/<think>[\s\S]*/g, "");
+  cleaned = cleaned.trim();
 
   // Remove markdown code fences (```bash ... ```)
   cleaned = cleaned.replace(/^```(?:bash|sh|shell|zsh)?\n?/, "");
