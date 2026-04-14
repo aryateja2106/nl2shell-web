@@ -34,7 +34,11 @@ export function useLocalInference() {
 
   // Detect WebGPU after mount to avoid SSR hydration mismatch
   useEffect(() => {
-    const available = "gpu" in navigator;
+    const nav = navigator as Navigator & {
+      gpu?: { requestAdapter?: () => Promise<unknown> };
+    };
+    const hasWasm = typeof WebAssembly === "object";
+    const available = hasWasm || typeof nav.gpu?.requestAdapter === "function";
     setState((s) => ({ ...s, isWebGPUAvailable: available }));
   }, []);
 
@@ -55,7 +59,7 @@ export function useLocalInference() {
       ...s,
       modelStatus: "loading",
       loadProgress: 0,
-      loadProgressText: "Initializing WebGPU...",
+      loadProgressText: "Initializing browser inference...",
       error: null,
     }));
 
@@ -92,13 +96,6 @@ export function useLocalInference() {
       if (raw.includes("Failed to fetch") || raw.includes("NetworkError")) {
         message =
           "Failed to download model. Check your connection or try again.";
-      } else if (
-        raw.includes("WebGPU") ||
-        raw.includes("adapter") ||
-        raw.includes("gpu")
-      ) {
-        message =
-          "WebGPU is not supported on this device. Try Chrome or Edge on a device with a GPU.";
       }
       setState((s) => ({
         ...s,

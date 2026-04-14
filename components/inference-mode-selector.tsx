@@ -42,7 +42,7 @@ export function InferenceModeSelector({
             disabled={isDisabled}
             title={
               isDisabled
-                ? "WebGPU not available in this browser"
+                ? "Browser inference is not available in this browser"
                 : value === "browser" && modelStatus === "ready"
                   ? "Model loaded — inference runs locally"
                   : value === "browser"
