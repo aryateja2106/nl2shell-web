@@ -55,9 +55,14 @@ function toText(content: unknown): string | null {
 
 function extractCandidateTexts(result: unknown): string[] {
   const candidates: string[] = [];
+  const seen = new Set<string>();
   const push = (value: unknown) => {
     const text = toText(value);
-    if (text && text.trim()) candidates.push(text);
+    if (!text) return;
+    const normalized = text.trim();
+    if (!normalized || seen.has(normalized)) return;
+    seen.add(normalized);
+    candidates.push(normalized);
   };
 
   const outputs = Array.isArray(result) ? result : [result];
@@ -71,22 +76,24 @@ function extractCandidateTexts(result: unknown): string[] {
     const generatedText = (output as { generated_text?: unknown }).generated_text;
     if (Array.isArray(generatedText)) {
       const reversed = [...generatedText].reverse();
-
-      for (const item of reversed) {
-        if (!item || typeof item !== "object") continue;
-        const message = item as { role?: unknown; content?: unknown };
-        if (message.role === "assistant") {
-          push(message.content);
-        }
-      }
+      const assistantFirst: unknown[] = [];
+      const fallbackContent: unknown[] = [];
 
       for (const item of reversed) {
         if (item && typeof item === "object") {
-          push((item as { content?: unknown }).content);
+          const message = item as { role?: unknown; content?: unknown };
+          if (message.role === "assistant") {
+            assistantFirst.push(message.content);
+          } else {
+            fallbackContent.push(message.content);
+          }
         } else {
-          push(item);
+          fallbackContent.push(item);
         }
       }
+
+      assistantFirst.forEach(push);
+      fallbackContent.forEach(push);
     } else {
       push(generatedText);
     }
@@ -122,10 +129,10 @@ export async function initEngine(onProgress?: ProgressCallback): Promise<void> {
         }
       : undefined;
 
-    let lastError: unknown = null;
+    const initErrors: Array<{ device: "webgpu" | "wasm"; reason: string }> = [];
     for (const device of ["webgpu", "wasm"] as const) {
       try {
-        if (onProgress && device === "wasm") {
+        if (onProgress && device === "wasm" && initErrors.length > 0) {
           onProgress({
             progress: 0,
             text: "WebGPU unavailable, falling back to WASM...",
@@ -139,11 +146,18 @@ export async function initEngine(onProgress?: ProgressCallback): Promise<void> {
         activeDevice = device;
         return generator;
       } catch (err) {
-        lastError = err;
+        initErrors.push({
+          device,
+          reason: err instanceof Error ? err.message : String(err),
+        });
       }
     }
 
-    throw lastError ?? new Error("Unable to initialize browser inference engine.");
+    throw new Error(
+      `Unable to initialize browser inference engine. Attempts failed: ${initErrors
+        .map((error) => `${error.device}: ${error.reason}`)
+        .join(" | ")}`,
+    );
   })();
 
   try {

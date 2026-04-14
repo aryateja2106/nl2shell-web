@@ -42,7 +42,7 @@ export function ShellSession() {
     reset,
     mode,
     setMode,
-    isWebGPUAvailable,
+    isBrowserInferenceAvailable,
     modelStatus,
     loadProgress,
     loadProgressText,
@@ -157,7 +157,7 @@ export function ShellSession() {
               <InferenceModeSelector
                 mode={mode}
                 onModeChange={setMode}
-                isWebGPUAvailable={isWebGPUAvailable}
+                isBrowserInferenceAvailable={isBrowserInferenceAvailable}
                 modelStatus={modelStatus}
               />
               <VoiceInput onTranscript={handleVoiceTranscript} disabled={isLoading} />
@@ -255,4 +255,3 @@ export function ShellSession() {
     </div>
   );
 }
-

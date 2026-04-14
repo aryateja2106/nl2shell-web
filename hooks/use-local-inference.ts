@@ -12,7 +12,7 @@ interface TranslateResult {
 export type ModelStatus = "idle" | "loading" | "ready" | "error";
 
 interface LocalInferenceState {
-  isWebGPUAvailable: boolean;
+  isBrowserInferenceAvailable: boolean;
   modelStatus: ModelStatus;
   loadProgress: number;
   loadProgressText: string;
@@ -23,7 +23,7 @@ interface LocalInferenceState {
 
 export function useLocalInference() {
   const [state, setState] = useState<LocalInferenceState>({
-    isWebGPUAvailable: false,
+    isBrowserInferenceAvailable: false,
     modelStatus: "idle",
     loadProgress: 0,
     loadProgressText: "",
@@ -38,8 +38,11 @@ export function useLocalInference() {
       gpu?: { requestAdapter?: () => Promise<unknown> };
     };
     const hasWasm = typeof WebAssembly === "object";
+    // Either capability check is sufficient here: WebGPU may run directly, and
+    // WASM enables fallback. Actual runtime availability is validated at engine
+    // initialization time.
     const available = hasWasm || typeof nav.gpu?.requestAdapter === "function";
-    setState((s) => ({ ...s, isWebGPUAvailable: available }));
+    setState((s) => ({ ...s, isBrowserInferenceAvailable: available }));
   }, []);
 
   // Keep engine module ref to avoid re-importing

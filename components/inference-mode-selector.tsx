@@ -8,7 +8,7 @@ import type { ModelStatus } from "@/hooks/use-local-inference";
 interface InferenceModeSelectorProps {
   mode: InferenceMode;
   onModeChange: (mode: InferenceMode) => void;
-  isWebGPUAvailable: boolean;
+  isBrowserInferenceAvailable: boolean;
   modelStatus: ModelStatus;
 }
 
@@ -25,7 +25,7 @@ const modes: {
 export function InferenceModeSelector({
   mode,
   onModeChange,
-  isWebGPUAvailable,
+  isBrowserInferenceAvailable,
   modelStatus,
 }: InferenceModeSelectorProps) {
   return (
@@ -33,7 +33,7 @@ export function InferenceModeSelector({
       {modes.map(({ value, label, icon: Icon }) => {
         const isActive = mode === value;
         const isDisabled =
-          (value === "browser" || value === "auto") && !isWebGPUAvailable;
+          (value === "browser" || value === "auto") && !isBrowserInferenceAvailable;
 
         return (
           <button

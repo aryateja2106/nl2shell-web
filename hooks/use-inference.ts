@@ -15,12 +15,12 @@ export function useInference() {
   useEffect(() => {
     if (
       (mode === "browser" || mode === "auto") &&
-      local.isWebGPUAvailable &&
+      local.isBrowserInferenceAvailable &&
       local.modelStatus === "idle"
     ) {
       local.loadModel();
     }
-  }, [mode, local, local.isWebGPUAvailable, local.modelStatus, local.loadModel]);
+  }, [mode, local, local.isBrowserInferenceAvailable, local.modelStatus, local.loadModel]);
 
   const useBrowser =
     mode === "browser" ||
@@ -55,7 +55,7 @@ export function useInference() {
     setMode,
 
     // Local model state
-    isWebGPUAvailable: local.isWebGPUAvailable,
+    isBrowserInferenceAvailable: local.isBrowserInferenceAvailable,
     modelStatus: local.modelStatus,
     loadProgress: local.loadProgress,
     loadProgressText: local.loadProgressText,
