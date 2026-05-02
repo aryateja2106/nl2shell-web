@@ -73,7 +73,7 @@ export function CommandOutput({
             <Link
               href={terminalHref}
               className="h-6 px-2 inline-flex items-center text-[10px] font-mono text-muted-foreground/70 hover:text-foreground hover:bg-muted/40 rounded-md transition-colors"
-              aria-label="Open command in web terminal"
+              aria-label="Open command in web terminal for review before running"
             >
               <SquareTerminal className="size-3 mr-1" />
               Terminal

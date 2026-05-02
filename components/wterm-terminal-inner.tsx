@@ -22,7 +22,7 @@ const GREETING = [
   "",
   "Try:  ls    cd Desktop    cat ~/.ssh/config    curl https://httpbin.org/get",
   "",
-  "Use NL2Shell above: describe what you want, then Generate & run.",
+  "Above: describe what you want, Generate, then Run in terminal when you trust the command.",
   "",
 ];
 
@@ -35,10 +35,21 @@ export default function WTermTerminalInner() {
   const { ref, write, focus } = useTerminal();
   const searchParams = useSearchParams();
   const shellRef = useRef<BashShell | null>(null);
-  const injectedRef = useRef(false);
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const urlCmdCapture = useRef<string | null | undefined>(undefined);
+  if (urlCmdCapture.current === undefined) {
+    const raw = searchParams.get("cmd") ?? searchParams.get("paste");
+    urlCmdCapture.current = raw?.trim() ? raw.trim() : null;
+  }
+
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (urlCmdCapture.current) {
+      window.history.replaceState(null, "", "/terminal");
+    }
+  }, []);
 
   const [mergedFiles] = useState(() => ({
     ...DEMO_INITIAL_FILES,
@@ -86,7 +97,6 @@ export default function WTermTerminalInner() {
     return () => {
       if (persistTimerRef.current) clearTimeout(persistTimerRef.current);
       shellRef.current = null;
-      injectedRef.current = false;
       setReady(false);
     };
   }, []);
@@ -126,23 +136,6 @@ export default function WTermTerminalInner() {
     }
   }, [schedulePersist]);
 
-  useEffect(() => {
-    if (!ready || injectedRef.current) return;
-    const raw = searchParams.get("cmd") ?? searchParams.get("paste");
-    if (!raw?.trim()) return;
-    injectedRef.current = true;
-    const cmd = raw.trim();
-    void (async () => {
-      try {
-        await shellRef.current?.handleInput(`${cmd}\r`);
-        schedulePersist();
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to run command");
-      }
-      window.history.replaceState(null, "", "/terminal");
-    })();
-  }, [ready, searchParams, schedulePersist]);
-
   const handleResetDemo = useCallback(() => {
     clearStoredVfs();
     window.location.reload();
@@ -174,7 +167,11 @@ export default function WTermTerminalInner() {
       </header>
 
       <div className="max-w-5xl w-full mx-auto px-4 py-4 space-y-4 flex-1 flex flex-col min-h-0">
-        <TerminalTranslateStrip onCommand={injectCommand} disabled={!ready} />
+        <TerminalTranslateStrip
+          onRunCommand={injectCommand}
+          disabled={!ready}
+          initialUrlCommand={urlCmdCapture.current ?? null}
+        />
 
         {error && (
           <p className="text-sm text-destructive" role="alert">

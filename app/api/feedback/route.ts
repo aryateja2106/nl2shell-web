@@ -37,11 +37,29 @@ export async function POST(request: Request) {
   }
 
   try {
-    const { query, command, rating, correction } = await request.json();
+    const body = await request.json();
+    const {
+      query,
+      command,
+      rating,
+      correction,
+      source,
+      executed,
+      terminal_output_excerpt,
+    } = body as {
+      query?: string;
+      command?: string;
+      rating?: string;
+      correction?: string;
+      source?: string;
+      executed?: boolean;
+      terminal_output_excerpt?: string;
+    };
 
     if (
       !query ||
       !command ||
+      typeof rating !== "string" ||
       !["up", "down"].includes(rating) ||
       typeof query !== "string" ||
       typeof command !== "string" ||
@@ -55,15 +73,43 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid correction" }, { status: 400 });
     }
 
+    const src =
+      typeof source === "string" ? source.slice(0, 64) : undefined;
+    const excerpt =
+      typeof terminal_output_excerpt === "string"
+        ? terminal_output_excerpt.slice(0, 8000)
+        : undefined;
+
     logger.info("feedback", {
       query: query.slice(0, 500),
       command: command.slice(0, 1000),
       rating,
       ...(correction && { correction: correction.slice(0, 1000) }),
+      ...(src && { source: src }),
+      ...(typeof executed === "boolean" && { executed }),
+      ...(excerpt && { terminal_output_excerpt: excerpt.slice(0, 2000) }),
     });
 
+    if (src || typeof executed === "boolean" || excerpt) {
+      logger.info("feedback_rl", {
+        source: src ?? "translate",
+        executed: executed ?? null,
+        query: query.slice(0, 500),
+        command: command.slice(0, 1000),
+        rating,
+        correction: correction?.slice(0, 1000) ?? null,
+        terminal_output_excerpt: excerpt?.slice(0, 4000) ?? null,
+      });
+    }
+
     // Persist to Supabase if configured (best-effort, non-blocking)
-    saveFeedback({ query, command, rating, correction, ip }).catch(() => {});
+    saveFeedback({
+      query,
+      command,
+      rating: rating as "up" | "down",
+      correction,
+      ip,
+    }).catch(() => {});
 
     return NextResponse.json({ ok: true });
   } catch {
