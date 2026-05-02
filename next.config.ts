@@ -6,7 +6,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.huggingface.co https://*.webcontainer-api.io https://*.stackblitz.io https://va.vercel-scripts.com https://vitals.vercel-insights.com",
+  "connect-src 'self' https://*.huggingface.co https://cdn.jsdelivr.net https://httpbin.org https://jsonplaceholder.typicode.com https://*.webcontainer-api.io https://*.stackblitz.io https://va.vercel-scripts.com https://vitals.vercel-insights.com",
   "worker-src 'self' blob:",
   "child-src 'self' blob:",
   "frame-ancestors 'none'",

@@ -1,5 +1,10 @@
 "use client";
 
+/**
+ * In-browser translation (Transformers.js). Requires:
+ * - connect-src in next.config.ts for Hugging Face model hosts and https://cdn.jsdelivr.net (ONNX/WASM assets)
+ * - Cross-origin isolation (COOP/COEP) already set site-wide for WebContainer; WASM path uses WebGPU when available, else WASM.
+ */
 import { pipeline, TextGenerationPipeline } from "@huggingface/transformers";
 import { cleanResponse } from "@/lib/clean-response";
 

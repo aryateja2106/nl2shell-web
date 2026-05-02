@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { ShellSession } from "@/components/shell-session";
 import { HeroTerminal } from "@/components/hero-terminal";
 import { Footer } from "@/components/footer";
@@ -74,6 +75,12 @@ export default function Home() {
             >
               Try it now — free
             </a>
+            <Link
+              href="/terminal"
+              className="inline-flex items-center justify-center border border-[#2ea44f]/40 bg-[#2ea44f]/5 hover:bg-[#2ea44f]/10 text-foreground px-6 py-3 text-sm rounded-lg font-medium transition-all"
+            >
+              Web terminal (demo shell)
+            </Link>
             <a
               href="#install"
               className="inline-flex items-center justify-center border border-border/60 hover:border-primary/40 text-muted-foreground hover:text-foreground px-6 py-3 text-sm rounded-lg font-medium transition-all backdrop-blur-sm"

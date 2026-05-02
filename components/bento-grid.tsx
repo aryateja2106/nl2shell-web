@@ -1,6 +1,7 @@
 "use client";
 import { motion } from "motion/react";
 import type { Variants } from "motion/react";
+import Link from "next/link";
 import {
   ShieldCheck,
   Monitor,
@@ -8,6 +9,7 @@ import {
   Plug,
   Mic,
   GitFork,
+  SquareTerminal,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +37,7 @@ interface BentoCard {
   description: string;
   colSpan: string;
   iconClass: string;
+  href?: string;
 }
 
 const cards: BentoCard[] = [
@@ -58,9 +61,18 @@ const cards: BentoCard[] = [
     icon: Box,
     title: "Sandboxed Execution",
     description:
-      "Test commands safely in an isolated Docker container before running on your system.",
+      "Test commands in an isolated Docker container, or try the in-browser demo shell with sample files at /terminal.",
     colSpan: "md:col-span-1",
     iconClass: "bg-amber-500/10 text-amber-500",
+  },
+  {
+    icon: SquareTerminal,
+    title: "Web terminal",
+    description:
+      "Full demo bash in the browser: fake SSH samples, Desktop and work folders, allow-listed curl, and NL2Shell generate-and-run.",
+    colSpan: "md:col-span-1",
+    iconClass: "bg-teal-500/10 text-teal-500",
+    href: "/terminal",
   },
   {
     icon: Plug,
@@ -99,6 +111,22 @@ export function BentoGrid() {
     >
       {cards.map((card) => {
         const Icon = card.icon;
+        const inner = (
+          <>
+            <div
+              className={cn(
+                "size-10 rounded-lg flex items-center justify-center mb-4",
+                card.iconClass
+              )}
+            >
+              <Icon className="size-5" />
+            </div>
+            <h3 className="text-sm font-semibold mb-1">{card.title}</h3>
+            <p className="text-xs text-muted-foreground/70 leading-relaxed">
+              {card.description}
+            </p>
+          </>
+        );
         return (
           <motion.div
             key={card.title}
@@ -112,18 +140,16 @@ export function BentoGrid() {
               card.colSpan
             )}
           >
-            <div
-              className={cn(
-                "size-10 rounded-lg flex items-center justify-center mb-4",
-                card.iconClass
-              )}
-            >
-              <Icon className="size-5" />
-            </div>
-            <h3 className="text-sm font-semibold mb-1">{card.title}</h3>
-            <p className="text-xs text-muted-foreground/70 leading-relaxed">
-              {card.description}
-            </p>
+            {card.href ? (
+              <Link
+                href={card.href}
+                className="block -m-6 p-6 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                {inner}
+              </Link>
+            ) : (
+              inner
+            )}
           </motion.div>
         );
       })}
