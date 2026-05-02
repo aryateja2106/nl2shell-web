@@ -7,6 +7,12 @@ interface SandboxState {
   output: ExecutionResult | null;
   isExecuting: boolean;
   error: string | null;
+  history: Array<{
+    command: string;
+    stdout: string;
+    exitCode: number;
+    timestamp: number;
+  }>;
 }
 
 const SESSION_KEY = "leshell-session-id";
@@ -34,6 +40,7 @@ export function useSandbox() {
     output: null,
     isExecuting: false,
     error: null,
+    history: [],
   });
 
   const abortRef = useRef<AbortController | null>(null);
@@ -97,11 +104,21 @@ export function useSandbox() {
           return;
         }
 
+        const executionResult = data as ExecutionResult;
         setState((prev) => ({
           ...prev,
-          output: data as ExecutionResult,
+          output: executionResult,
           isExecuting: false,
           error: null,
+          history: [
+            ...prev.history,
+            {
+              command,
+              stdout: executionResult.stdout,
+              exitCode: executionResult.exitCode,
+              timestamp: Date.now(),
+            },
+          ],
         }));
       } catch (err) {
         if ((err as Error).name === "AbortError") return;
@@ -127,6 +144,7 @@ export function useSandbox() {
       output: null,
       isExecuting: false,
       error: null,
+      history: [],
     });
   }, []);
 

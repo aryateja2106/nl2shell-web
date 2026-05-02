@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Play, Copy, Check } from "lucide-react";
+import { Play, Copy, Check, SquareTerminal } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { DangerWarning } from "@/components/danger-warning";
 import { FeedbackBar } from "@/components/feedback-bar";
@@ -17,11 +18,20 @@ interface CommandOutputProps {
   inferenceSource?: "cloud" | "browser";
 }
 
-export function CommandOutput({ command, meta, query, onExecute, isExecuting, sandboxEnabled, inferenceSource }: CommandOutputProps) {
+export function CommandOutput({
+  command,
+  meta,
+  query,
+  onExecute,
+  isExecuting,
+  sandboxEnabled,
+  inferenceSource,
+}: CommandOutputProps) {
   const [copied, setCopied] = useState(false);
   const copyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dangerous = isDangerous(command);
   const dangerReason = getDangerReason(command);
+  const terminalHref = `/terminal?cmd=${encodeURIComponent(command)}`;
 
   useEffect(() => {
     return () => {
@@ -60,6 +70,14 @@ export function CommandOutput({ command, meta, query, onExecute, isExecuting, sa
             <div className="size-2.5 rounded-full bg-[#28c840]" />
           </div>
           <div className="flex items-center gap-1">
+            <Link
+              href={terminalHref}
+              className="h-6 px-2 inline-flex items-center text-[10px] font-mono text-muted-foreground/70 hover:text-foreground hover:bg-muted/40 rounded-md transition-colors"
+              aria-label="Open command in web terminal"
+            >
+              <SquareTerminal className="size-3 mr-1" />
+              Terminal
+            </Link>
             {sandboxEnabled && onExecute && (
               <Button
                 variant="ghost"

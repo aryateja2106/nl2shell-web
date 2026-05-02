@@ -15,9 +15,10 @@ import { AnimatedThemeToggler } from "@/components/animated-theme-toggler";
 import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
-  { label: "Features", href: "#features" },
-  { label: "Try It", href: "#translate" },
-  { label: "Install", href: "#install" },
+  { label: "Features", href: "/#features" },
+  { label: "Try It", href: "/#translate" },
+  { label: "Terminal", href: "/terminal" },
+  { label: "Install", href: "/#install" },
 ] as const;
 
 export function Navbar() {
@@ -60,7 +61,7 @@ export function Navbar() {
       {/* Nav links — hidden on mobile */}
       <div className="hidden items-center gap-1 sm:flex">
         {NAV_LINKS.map(({ label, href }) => (
-          <a
+          <Link
             key={href}
             href={href}
             className={cn(
@@ -70,7 +71,7 @@ export function Navbar() {
             )}
           >
             {label}
-          </a>
+          </Link>
         ))}
       </div>
 

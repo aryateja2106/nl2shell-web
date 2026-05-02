@@ -42,3 +42,6 @@ next-env.d.ts
 relay/node_modules/
 relay/data/
 relay/package-lock.json
+
+# Copied from @wterm/core on npm run prebuild / predev
+/public/wterm.wasm

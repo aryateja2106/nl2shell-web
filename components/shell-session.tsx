@@ -11,7 +11,7 @@ import { ExecutionOutput } from "@/components/execution-output";
 import { ExamplePrompts } from "@/components/example-prompts";
 import { AILoader } from "@/components/ai-loader";
 import { useTranslate, type InferenceMode } from "@/hooks/use-translate";
-import { useWebContainer } from "@/hooks/use-webcontainer";
+import { useCommandExecution } from "@/hooks/use-command-execution";
 
 const SANDBOX_ENABLED = process.env.NEXT_PUBLIC_SANDBOX_ENABLED !== "false";
 
@@ -35,7 +35,9 @@ export function ShellSession() {
   const [mode, setMode] = useState<InferenceMode>("cloud");
   const { result, isLoading, error, browserStatus, translate, reset } =
     useTranslate(mode);
-  const sandbox = useWebContainer();
+  const sandbox = useCommandExecution();
+  const runInSandboxEnabled =
+    SANDBOX_ENABLED && sandbox.backend !== "off";
 
   const handleSubmit = useCallback(() => {
     const trimmed = input.trim();
@@ -232,9 +234,10 @@ export function ShellSession() {
           command={result.command}
           meta={result.meta}
           query={lastQuery}
-          onExecute={sandbox.execute}
+          onExecute={runInSandboxEnabled ? sandbox.execute : undefined}
           isExecuting={sandbox.isExecuting}
-          sandboxEnabled={SANDBOX_ENABLED}
+          sandboxEnabled={runInSandboxEnabled}
+          inferenceSource={mode === "browser" ? "browser" : "cloud"}
         />
       )}
 
