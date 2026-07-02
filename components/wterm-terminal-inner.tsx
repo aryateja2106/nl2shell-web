@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { Terminal, useTerminal } from "@wterm/react";
 import { BashShell } from "@wterm/just-bash";
 import "@wterm/react/css";
 import { ArrowLeft } from "lucide-react";
 import { TerminalTranslateStrip } from "@/components/terminal-translate-strip";
+import { WebContainerTerminalPanel } from "@/components/webcontainer-terminal-panel";
 import { Button } from "@/components/ui/button";
 import {
   DEMO_INITIAL_FILES,
@@ -19,6 +19,7 @@ import {
 
 const GREETING = [
   "NL2Shell demo shell — commands run in a virtual filesystem (not your Mac).",
+  "There is no Node.js or npm here (by design). For real npm, npx, or global CLIs, use the WebContainer tab above.",
   "",
   "Try:  ls    cd Desktop    cat ~/.ssh/config    curl https://httpbin.org/get",
   "",
@@ -31,25 +32,65 @@ function demoPrompt(cwd: string): string {
   return `\x1b[1;32muser@nl2shell\x1b[0m:\x1b[1;34m${display}\x1b[0m$ `;
 }
 
+const TERMINAL_URL_CMD_KEY = "nl2shell:terminal:url-cmd-pending";
+
+type TerminalBackend = "demo" | "webcontainer";
+
 export default function WTermTerminalInner() {
   const { ref, write, focus } = useTerminal();
-  const searchParams = useSearchParams();
+  const [initialUrlCommand, setInitialUrlCommand] = useState<string | null>(null);
+
+  useLayoutEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const live = (params.get("cmd") ?? params.get("paste"))?.trim();
+      if (live) {
+        sessionStorage.setItem(TERMINAL_URL_CMD_KEY, live);
+        queueMicrotask(() => {
+          setInitialUrlCommand(live);
+        });
+        window.history.replaceState(null, "", "/terminal");
+        window.setTimeout(() => {
+          try {
+            sessionStorage.removeItem(TERMINAL_URL_CMD_KEY);
+          } catch {
+            /* ignore */
+          }
+        }, 10_000);
+        return;
+      }
+      const pending = sessionStorage.getItem(TERMINAL_URL_CMD_KEY);
+      if (pending?.trim()) {
+        queueMicrotask(() => {
+          setInitialUrlCommand(pending.trim());
+        });
+        sessionStorage.removeItem(TERMINAL_URL_CMD_KEY);
+      }
+    } catch {
+      /* private mode / quota */
+    }
+  }, []);
   const shellRef = useRef<BashShell | null>(null);
   const persistTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const urlCmdCapture = useRef<string | null | undefined>(undefined);
-  if (urlCmdCapture.current === undefined) {
-    const raw = searchParams.get("cmd") ?? searchParams.get("paste");
-    urlCmdCapture.current = raw?.trim() ? raw.trim() : null;
-  }
 
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [backend, setBackend] = useState<TerminalBackend>("demo");
+  const [wcSessionReady, setWcSessionReady] = useState(false);
+  const wcInjectRef = useRef<((cmd: string) => Promise<void>) | null>(null);
 
-  useEffect(() => {
-    if (urlCmdCapture.current) {
-      window.history.replaceState(null, "", "/terminal");
-    }
+  const setBackendAndClearError = useCallback((b: TerminalBackend) => {
+    setError(null);
+    setBackend(b);
   }, []);
+
+  const handleWcInjectReady = useCallback(
+    (fn: ((cmd: string) => Promise<void>) | null) => {
+      wcInjectRef.current = fn;
+    },
+    [],
+  );
 
   const [mergedFiles] = useState(() => ({
     ...DEMO_INITIAL_FILES,
@@ -125,16 +166,29 @@ export default function WTermTerminalInner() {
     [schedulePersist],
   );
 
-  const injectCommand = useCallback(async (command: string) => {
-    const cmd = command.trim();
-    if (!cmd) return;
-    try {
-      await shellRef.current?.handleInput(`${cmd}\r`);
-      schedulePersist();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to run command");
-    }
-  }, [schedulePersist]);
+  const injectCommand = useCallback(
+    async (command: string) => {
+      const cmd = command.trim();
+      if (!cmd) return;
+      try {
+        setError(null);
+        if (backend === "demo") {
+          await shellRef.current?.handleInput(`${cmd}\r`);
+          schedulePersist();
+          return;
+        }
+        const run = wcInjectRef.current;
+        if (!run) {
+          setError("WebContainer session is not ready. Start a session below.");
+          return;
+        }
+        await run(cmd);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to run command");
+      }
+    },
+    [backend, schedulePersist],
+  );
 
   const handleResetDemo = useCallback(() => {
     clearStoredVfs();
@@ -153,24 +207,63 @@ export default function WTermTerminalInner() {
         </Link>
         <h1 className="text-sm font-semibold tracking-tight">Web terminal</h1>
         <span className="text-[11px] font-mono text-muted-foreground/60 hidden sm:inline">
-          wterm · just-bash · demo FS
+          wterm · demo FS · WebContainer
         </span>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="ml-auto text-xs"
-          onClick={handleResetDemo}
-        >
-          Reset demo files
-        </Button>
+        <div className="ml-auto flex flex-wrap items-center gap-2">
+          <div className="flex rounded-md border border-border/50 p-0.5 bg-muted/30">
+            <Button
+              type="button"
+              variant={backend === "demo" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 text-xs px-2.5"
+              onClick={() => setBackendAndClearError("demo")}
+            >
+              Demo FS
+            </Button>
+            <Button
+              type="button"
+              variant={backend === "webcontainer" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-7 text-xs px-2.5"
+              onClick={() => setBackendAndClearError("webcontainer")}
+            >
+              WebContainer
+            </Button>
+          </div>
+          {backend === "demo" && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="text-xs"
+              onClick={handleResetDemo}
+            >
+              Reset demo files
+            </Button>
+          )}
+        </div>
       </header>
 
       <div className="max-w-5xl w-full mx-auto px-4 py-4 space-y-4 flex-1 flex flex-col min-h-0">
+        {backend === "demo" && (
+          <p className="text-xs text-muted-foreground rounded-lg border border-border/40 bg-muted/20 px-3 py-2 leading-relaxed">
+            <span className="font-medium text-foreground/85">Demo FS</span> is a small
+            in-browser bash toy: files and allow-listed <code className="text-[11px]">curl</code> only.
+            It is <strong className="font-medium text-foreground/90">not</strong> macOS, Linux, or Homebrew,
+            and it has <strong className="font-medium text-foreground/90">no npm</strong>. To try{" "}
+            <code className="text-[11px]">npm install</code>, CLIs, or the Anthropic Node tools, switch to{" "}
+            <span className="font-medium text-foreground/85">WebContainer</span>, then{" "}
+            <span className="font-medium text-foreground/85">Start WebContainer session</span> and wait for the
+            prompt (often 30–90s the first time; slow networks may need longer).
+          </p>
+        )}
+
         <TerminalTranslateStrip
           onRunCommand={injectCommand}
-          disabled={!ready}
-          initialUrlCommand={urlCmdCapture.current ?? null}
+          disabled={
+            backend === "demo" ? !ready : !wcSessionReady
+          }
+          initialUrlCommand={initialUrlCommand}
         />
 
         {error && (
@@ -179,17 +272,24 @@ export default function WTermTerminalInner() {
           </p>
         )}
 
-        <div className="flex-1 min-h-[min(70vh,640px)] rounded-xl border border-[var(--terminal-border)] overflow-hidden shadow-lg">
-          <Terminal
-            ref={ref}
-            onReady={handleReady}
-            onData={handleData}
-            autoResize
-            cursorBlink
-            wasmUrl="/wterm.wasm"
-            className="h-full min-h-[480px] w-full text-sm"
+        {backend === "demo" ? (
+          <div className="flex-1 min-h-[min(70vh,640px)] rounded-xl border border-[var(--terminal-border)] overflow-hidden shadow-lg">
+            <Terminal
+              ref={ref}
+              onReady={handleReady}
+              onData={handleData}
+              autoResize
+              cursorBlink
+              wasmUrl="/wterm.wasm"
+              className="h-full min-h-[480px] w-full text-sm"
+            />
+          </div>
+        ) : (
+          <WebContainerTerminalPanel
+            onInjectReady={handleWcInjectReady}
+            onSessionReady={setWcSessionReady}
           />
-        </div>
+        )}
       </div>
     </div>
   );

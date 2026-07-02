@@ -1,13 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Copy, Loader2, Play, Terminal, X } from "lucide-react";
+import { Copy, Loader2, Play, Terminal, X, MessageSquareText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { VoiceInput } from "@/components/voice-input";
 import { DangerWarning } from "@/components/danger-warning";
 import { TerminalRunFeedback } from "@/components/terminal-run-feedback";
 import { getDemoShellHint } from "@/lib/terminal-command-guards";
+import { formatStructuredAgentBrief } from "@/lib/agent-handoff";
 import {
   getDangerReason,
   isDangerous,
@@ -120,6 +121,20 @@ export function TerminalTranslateStrip({
       /* ignore */
     }
   }, [editedCommand]);
+
+  const copyAgentBrief = useCallback(async () => {
+    const cmd = editedCommand.trim();
+    if (!cmd) return;
+    try {
+      const text = formatStructuredAgentBrief({
+        nlQuery: lastQuery?.trim() ? lastQuery : "(no English query recorded)",
+        shellCommand: cmd,
+      });
+      await navigator.clipboard.writeText(text);
+    } catch {
+      /* ignore */
+    }
+  }, [editedCommand, lastQuery]);
 
   const dangerous = editedCommand ? isDangerous(editedCommand) : false;
   const dangerReason = editedCommand ? getDangerReason(editedCommand) : null;
@@ -248,6 +263,17 @@ export function TerminalTranslateStrip({
               <Copy className="size-3.5 mr-1.5 shrink-0" />
               Copy
             </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={!editedCommand.trim()}
+              onClick={() => void copyAgentBrief()}
+              title="Markdown: goal + command + checklist for a coding agent"
+            >
+              <MessageSquareText className="size-3.5 mr-1.5 shrink-0" />
+              Copy agent brief
+            </Button>
           </div>
         </div>
       )}
@@ -269,7 +295,8 @@ export function TerminalTranslateStrip({
       <p className="text-[10px] text-muted-foreground/60 font-mono leading-relaxed">
         Generate shows a draft command only. Use{" "}
         <span className="text-foreground/70">Run in terminal</span> after you
-        trust it. Feedback (below after a run) is logged for dataset quality.
+        trust it. <span className="text-foreground/70">Copy agent brief</span>{" "}
+        pastes goal + command + checklist for coding agents. Feedback (below after a run) is logged for dataset quality.
       </p>
     </div>
   );

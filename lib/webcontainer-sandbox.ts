@@ -1,8 +1,12 @@
 "use client";
 
 import { WebContainer } from "@webcontainer/api";
+import {
+  assertCrossOriginIsolatedForWebContainer,
+  webContainerEnvironmentLine,
+} from "@/lib/webcontainer-diagnostics";
 
-const BOOT_TIMEOUT_MS = 55_000;
+const BOOT_TIMEOUT_MS = 120_000;
 
 function bootTimeoutMessage(): string {
   const isolated =
@@ -10,13 +14,15 @@ function bootTimeoutMessage(): string {
   if (!isolated) {
     return (
       "WebContainer did not start in time. This site needs cross-origin isolation " +
-      "(SharedArrayBuffer). If this keeps happening, use “Open in terminal” for an in-browser shell, " +
-      "or run commands on your machine."
+      "(SharedArrayBuffer). If this keeps happening, use the web terminal (/terminal), " +
+      "or run the command locally. " +
+      `Diagnostics: ${webContainerEnvironmentLine()}.`
     );
   }
   return (
-    "WebContainer boot timed out. Try again, use the web terminal (/terminal), " +
-    "or run the command locally."
+    "WebContainer boot timed out. Try again after a full page reload, pause ad-blockers for StackBlitz, " +
+    "or run the command locally. " +
+    `Diagnostics: ${webContainerEnvironmentLine()}.`
   );
 }
 
@@ -42,6 +48,7 @@ let container: WebContainer | null = null;
 let bootPromise: Promise<WebContainer> | null = null;
 
 export async function bootSandbox(): Promise<void> {
+  assertCrossOriginIsolatedForWebContainer();
   if (container) return;
   if (bootPromise) {
     await bootPromise;

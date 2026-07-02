@@ -6,9 +6,10 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.huggingface.co https://cdn.jsdelivr.net https://httpbin.org https://jsonplaceholder.typicode.com https://*.webcontainer-api.io https://*.stackblitz.io https://va.vercel-scripts.com https://vitals.vercel-insights.com",
+  "connect-src 'self' https://*.huggingface.co https://cdn.jsdelivr.net https://httpbin.org https://jsonplaceholder.typicode.com https://*.webcontainer-api.io https://*.stackblitz.io https://stackblitz.com https://*.stackblitz.com https://registry.npmjs.org https://*.npmjs.org https://claude.ai https://va.vercel-scripts.com https://vitals.vercel-insights.com",
   "worker-src 'self' blob:",
   "child-src 'self' blob:",
+  "frame-src 'self' blob: https://stackblitz.com https://*.stackblitz.com https://*.stackblitz.io https://*.webcontainer-api.io",
   "frame-ancestors 'none'",
 ].join("; ");
 
