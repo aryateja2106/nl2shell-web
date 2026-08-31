@@ -17,6 +17,8 @@ import { cn } from "@/lib/utils";
 const NAV_LINKS = [
   { label: "Features", href: "#features" },
   { label: "Try It", href: "#translate" },
+  { label: "Mission", href: "/mission" },
+  { label: "Voice", href: "/voice" },
   { label: "Install", href: "#install" },
 ] as const;
 
@@ -59,19 +61,33 @@ export function Navbar() {
 
       {/* Nav links — hidden on mobile */}
       <div className="hidden items-center gap-1 sm:flex">
-        {NAV_LINKS.map(({ label, href }) => (
-          <a
-            key={href}
-            href={href}
-            className={cn(
-              "rounded-md px-3 py-1.5 text-sm",
-              "text-muted-foreground transition-colors",
-              "hover:text-foreground hover:bg-accent/60"
-            )}
-          >
-            {label}
-          </a>
-        ))}
+        {NAV_LINKS.map(({ label, href }) =>
+          href.startsWith("/") ? (
+            <Link
+              key={href}
+              href={href}
+              className={cn(
+                "rounded-md px-3 py-1.5 text-sm",
+                "text-muted-foreground transition-colors",
+                "hover:text-foreground hover:bg-accent/60"
+              )}
+            >
+              {label}
+            </Link>
+          ) : (
+            <a
+              key={href}
+              href={href}
+              className={cn(
+                "rounded-md px-3 py-1.5 text-sm",
+                "text-muted-foreground transition-colors",
+                "hover:text-foreground hover:bg-accent/60"
+              )}
+            >
+              {label}
+            </a>
+          )
+        )}
       </div>
 
       {/* Right-side actions */}

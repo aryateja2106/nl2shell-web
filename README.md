@@ -61,9 +61,33 @@ SUPABASE_ANON_KEY=your-anon-key
 
 # Optional: IP hashing salt for privacy
 IP_SALT=your-random-salt
+
+# Optional: LiveKit Cloud (enables real-time voice room on /voice)
+# LIVEKIT_URL=wss://your-project.livekit.cloud
+# LIVEKIT_API_KEY=APIxxxxx
+# LIVEKIT_API_SECRET=your-secret
 ```
 
 The app works without any environment variables. Supabase integration is opt-in — without it, feedback is logged to stdout only.
+
+## Voice Demo (`/voice`)
+
+Browser-only NL→shell with Web Speech API + Transformers.js (WebGPU). Optionally joins a LiveKit room when credentials are set.
+
+```bash
+bun dev
+# open http://localhost:3000/voice
+```
+
+| Variable | Required | Purpose |
+|----------|----------|---------|
+| `LIVEKIT_URL` | No | LiveKit server WebSocket URL |
+| `LIVEKIT_API_KEY` | No | API key for token minting |
+| `LIVEKIT_API_SECRET` | No | API secret for token minting |
+
+Without LiveKit env vars, `/voice` runs in **demo mode**: local speech recognition + in-browser model still work; the API returns `{ demoMode: true }`.
+
+Token endpoint: `GET /api/livekit/token`
 
 ## Database Setup (Optional)
 

@@ -87,14 +87,18 @@ export function useTranslate(mode: InferenceMode = "cloud") {
       } catch (err) {
         const message =
           err instanceof Error ? err.message : "Translation failed";
+        // TypeError is often a failed model/WASM load, not "no internet".
+        const looksNetwork =
+          err instanceof TypeError &&
+          /fetch|network|failed to fetch|load failed/i.test(message) &&
+          mode === "cloud";
         setState((s) => ({
           ...s,
           result: null,
           isLoading: false,
-          error:
-            err instanceof TypeError
-              ? "Network error. Please check your connection."
-              : message,
+          error: looksNetwork
+            ? "Network error. Please check your connection."
+            : message,
         }));
       }
     },

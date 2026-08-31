@@ -1,12 +1,31 @@
 import type { NextConfig } from "next";
 
+// Hugging Face model files redirect to *.hf.co / CDN hosts — must be allowed
+// or Transformers.js fails with a generic "Load failed".
 const csp = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' blob:",
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  "img-src 'self' data: blob: https://*.huggingface.co https://*.hf.co",
   "font-src 'self' data:",
-  "connect-src 'self' https://*.huggingface.co https://*.webcontainer-api.io https://*.stackblitz.io https://va.vercel-scripts.com https://vitals.vercel-insights.com",
+  [
+    "connect-src 'self'",
+    "blob:",
+    "data:",
+    "https://*.huggingface.co",
+    "https://huggingface.co",
+    "https://*.hf.co",
+    "https://*.cdn.hf.co",
+    "https://cdn.jsdelivr.net",
+    "https://*.webcontainer-api.io",
+    "https://*.stackblitz.io",
+    "https://va.vercel-scripts.com",
+    "https://vitals.vercel-insights.com",
+    "https://*.livekit.cloud",
+    "wss://*.livekit.cloud",
+    "https://*.livekit.io",
+    "wss://*.livekit.io",
+  ].join(" "),
   "worker-src 'self' blob:",
   "child-src 'self' blob:",
   "frame-ancestors 'none'",
